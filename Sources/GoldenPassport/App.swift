@@ -4,11 +4,32 @@ import GoldenPassportCore
 @main
 enum GoldenPassportApp {
     static func main() {
+        if CommandLine.arguments.contains("--migrate-data") {
+            exit(runMigrateData(Array(CommandLine.arguments.dropFirst())))
+        }
         let app = NSApplication.shared
         let delegate = AppDelegate()
         app.delegate = delegate
         app.setActivationPolicy(.accessory)
         withExtendedLifetime(delegate) { app.run() }
+    }
+
+    /// `GoldenPassport --migrate-data [--data-dir PATH]`, used by scripts/install.sh.
+    /// Exit codes: 0 consistent, 3 migrated data does not match gp.secrets, 2 error.
+    private static func runMigrateData(_ arguments: [String]) -> Int32 {
+        var environment = AppEnvironment.fromBundle()
+        if let index = arguments.firstIndex(of: "--data-dir"), index + 1 < arguments.count {
+            environment.dataDirectory = URL(fileURLWithPath: arguments[index + 1], isDirectory: true)
+            environment.seedDirectory = nil
+        }
+        do {
+            let check = try MigrationCheck.run(environment: environment)
+            print("data_dir=\(environment.dataDirectory.path)\n\(check.report)")
+            return check.isConsistent ? 0 : 3
+        } catch {
+            FileHandle.standardError.write(Data("error=\(error.localizedDescription)\n".utf8))
+            return 2
+        }
     }
 }
 

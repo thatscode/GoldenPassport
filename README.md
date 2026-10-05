@@ -56,7 +56,15 @@ make test      # unit tests (TOTP RFC 6238 vectors, URL parsing, storage, migrat
 make dev       # isolated "GoldenPassport Dev.app": own bundle id, data dir, port 17305, hotkeys off
 make run-dev   # build and launch the Dev app
 make release   # "GoldenPassport.app", drop-in replacement for the installed app
+make beta      # universal release + install.sh / rollback.sh / tester notes, zipped under dist/
 ```
+
+`scripts/install.sh` upgrades an existing installation safely: it backs up the app and
+data directory to `~/GoldenPassport-backups/<timestamp>/`, replaces the app, runs
+`GoldenPassport --migrate-data` to migrate and verify every legacy entry (names only are
+printed), and restores the previous state automatically if verification fails.
+`scripts/rollback.sh` puts the previous app back. Tester instructions (Chinese) are in
+`docs/beta-testing.md`.
 
 Apps are written to `~/Library/Caches/GoldenPassport-build/<variant>/` (kept out of the
 source tree because iCloud-synced folders break code signing). `ARCHS="arm64 x86_64"`

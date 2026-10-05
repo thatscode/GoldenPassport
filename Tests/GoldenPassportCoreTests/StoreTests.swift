@@ -115,6 +115,53 @@ struct MigrationTests {
     }
 }
 
+struct MigrationCheckTests {
+    private func environment(_ dir: URL) -> AppEnvironment {
+        AppEnvironment(dataDirectory: dir, seedDirectory: nil,
+                       defaults: .init(httpPort: 17304, hotkeysEnabled: true))
+    }
+
+    @Test func freshMigrationMatchesLegacy() throws {
+        let dir = try makeTempDirectory()
+        try LegacyData.writeDictionary(["b": validURL, "a": validURL], to: dir.appendingPathComponent(LegacyData.secretsFileName))
+        let check = try MigrationCheck.run(environment: environment(dir))
+        #expect(check.status == .migrated)
+        #expect(check.legacyCount == 2 && check.accountCount == 2)
+        #expect(check.isConsistent)
+        #expect(!check.report.contains("secret="))
+    }
+
+    @Test func laterEditsAreNotMismatches() throws {
+        let dir = try makeTempDirectory()
+        try LegacyData.writeDictionary(["a": validURL], to: dir.appendingPathComponent(LegacyData.secretsFileName))
+        _ = try MigrationCheck.run(environment: environment(dir))
+        let store = AccountStore(directory: dir)
+        try store.rename(id: store.accounts[0].id, to: "renamed")
+        let check = try MigrationCheck.run(environment: environment(dir))
+        #expect(check.status == .alreadyMigrated)
+        #expect(check.isConsistent)
+    }
+
+    @Test func mismatchMakesReportInconsistent() {
+        let check = MigrationCheck(status: .migrated, legacyCount: 2, accountCount: 1, mismatchedNames: ["b"])
+        #expect(!check.isConsistent)
+        #expect(check.report.contains("mismatch=b"))
+    }
+
+    @Test func corruptAccountsFileIsAnError() throws {
+        let dir = try makeTempDirectory()
+        try Data("not json".utf8).write(to: dir.appendingPathComponent(AccountStore.fileName))
+        #expect(throws: (any Error).self) { try MigrationCheck.run(environment: environment(dir)) }
+        #expect(throws: (any Error).self) { try environment(dir).prepareDataDirectory() }
+        #expect(try String(contentsOf: dir.appendingPathComponent(AccountStore.fileName), encoding: .utf8) == "not json")
+    }
+
+    @Test func emptyDirectoryIsNoData() throws {
+        let check = try MigrationCheck.run(environment: environment(try makeTempDirectory()))
+        #expect(check.status == .noData && check.accountCount == 0 && check.isConsistent)
+    }
+}
+
 struct AccountEditingTests {
     func store(_ names: [String]) throws -> (AccountStore, URL) {
         let dir = try makeTempDirectory()
