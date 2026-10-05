@@ -13,11 +13,13 @@ A native implementation of Google Authenticator for Mac, written in Swift (Apple
 # Features
 
 - Recognize OTPAuth URL from a QRCode image
-- Authentication code management
-- Support RESTful API to obtain the verification code
-- Use a global hot key(`Shift+Cmd+[0-9]`) to direct fill out the verification code
+- Authentication code management: reorder, rename, edit, delete
+- Honours `algorithm` / `digits` / `period` from the otpauth URL (SHA1/SHA256/SHA512, 6–8 digits)
+- Support RESTful API to obtain the verification code (bound to 127.0.0.1 only)
+- Global hot keys (`⌃⌥⌘0`–`⌃⌥⌘9` by default, or `⇧⌘` as in 0.1.x) type the code of the first ten accounts into the frontmost app
 - Click an auth-menu to copy the verification code to the `PasteBoard`
-- Export/Import authentication codes
+- Export/Import: `.secrets` backup (compatible with 0.1.x) or a plain-text otpauth URL list
+- Launch at login
 
 # How to use
 
@@ -34,7 +36,7 @@ brew install --cask goldenpassport
 Now, you can get the verification code by:
 
 - From the status menu, copy the verification by clicking an auth-menu 
-- Use a global hot key(`Shift+Cmd+[0-9]`) to direct fill out the verification code
+- Use a global hot key (`⌃⌥⌘0`–`⌃⌥⌘9` by default, configurable in the menu) to fill in the verification code; typing it for you requires the Accessibility permission
 
 You can also use the RESTful API if you want to get the verification code from a shell script by the following way:
 
@@ -67,8 +69,8 @@ to the release data directory.
 
 # Todo
 
-- Support auto startup with system
-- i18n
+- English localization
+- Optionally store secrets in the Keychain
 
 # Resources
 

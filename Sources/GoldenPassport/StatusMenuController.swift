@@ -1,5 +1,6 @@
 import AppKit
 import GoldenPassportCore
+import ServiceManagement
 import UniformTypeIdentifiers
 
 final class StatusMenuController: NSObject, NSMenuDelegate {
@@ -17,6 +18,7 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
     private var httpURLItem: NSMenuItem!
     private var hotkeysItem: NSMenuItem!
     private var hotkeyChoiceItems: [NSMenuItem] = []
+    private var launchAtLoginItem: NSMenuItem!
 
     private var refreshTimer: Timer?
     private var deleteMode = false
@@ -82,7 +84,11 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         menu.addItem(item("管理（排序 / 重命名）...", #selector(manageClicked), key: "m"))
         deleteItem = add(item("删除", #selector(deleteClicked), key: "d"))
         menu.addItem(item("导入...", #selector(importClicked), key: "i"))
-        menu.addItem(item("导出...", #selector(exportClicked), key: "e"))
+        let exportItem = add(NSMenuItem(title: "导出", action: nil, keyEquivalent: ""))
+        let exportMenu = NSMenu()
+        exportMenu.addItem(item("备份文件（.secrets，可导入新旧版本）...", #selector(exportClicked), key: "e"))
+        exportMenu.addItem(item("otpauth URL 列表（.txt，可导入其他验证器）...", #selector(exportURLListClicked)))
+        exportItem.submenu = exportMenu
 
         menu.addItem(.separator())
         menu.addItem(sectionHeader("HTTP 接口"))
@@ -107,6 +113,7 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
             hotkeyChoiceItems.append(choice)
         }
         hotkeysItem.submenu = hotkeyMenu
+        launchAtLoginItem = add(item("开机自动启动", #selector(launchAtLoginClicked)))
         menu.addItem(item("帮助", #selector(helpClicked), key: "h"))
         menu.addItem(item("退出", #selector(quitClicked), key: "q"))
     }
@@ -181,6 +188,7 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         httpAutoStartItem.state = settings.httpServerAutoStart ? .on : .off
         httpURLItem.title = "浏览器访问 http://localhost:\(settings.httpServerPort)"
         httpURLItem.isHidden = !running
+        launchAtLoginItem.state = SMAppService.mainApp.status == .enabled ? .on : .off
         for choice in hotkeyChoiceItems {
             let modifiers = (choice.representedObject as? String).flatMap(HotkeyModifiers.init(rawValue:))
             let selected = settings.hotkeysEnabled ? modifiers == settings.hotkeyModifiers : modifiers == nil
@@ -249,16 +257,30 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
 
     @objc private func importClicked() {
         let panel = NSOpenPanel()
-        panel.allowedContentTypes = [UTType(filenameExtension: "secrets") ?? .data]
+        panel.allowedContentTypes = [UTType(filenameExtension: "secrets") ?? .data, .plainText]
         panel.allowsMultipleSelection = false
+        panel.message = "选择 .secrets 备份文件，或每行一个 otpauth:// URL 的文本文件"
         activateApp()
         guard panel.runModal() == .OK, let url = panel.url else { return }
         do {
-            let legacy = try LegacyData.readDictionary(at: url)
-            let entries = LegacyData.accounts(from: legacy).map { (name: $0.name, url: $0.url) }
+            let entries: [(name: String, url: String)]
+            var notes: [String] = []
+            if url.pathExtension.lowercased() == "secrets" {
+                let legacy = try LegacyData.readDictionary(at: url)
+                entries = LegacyData.accounts(from: legacy).map { (name: $0.name, url: $0.url) }
+            } else {
+                let parsed = OTPAuthList.parse(try String(contentsOf: url, encoding: .utf8))
+                entries = parsed.entries
+                if !parsed.invalidLines.isEmpty {
+                    notes.append("第 \(parsed.invalidLines.map(String.init).joined(separator: "、")) 行不是有效的 otpauth URL，已忽略。")
+                }
+            }
             let added = try store.importAccounts(entries)
+            if added < entries.count {
+                notes.insert("\(entries.count - added) 条因标识已存在而跳过。", at: 0)
+            }
             rebuildMenu()
-            showAlert("成功导入 \(added) 条记录", informative: added < entries.count ? "\(entries.count - added) 条因标识已存在而跳过。" : nil)
+            showAlert("成功导入 \(added) 条记录", informative: notes.isEmpty ? nil : notes.joined(separator: "\n"))
         } catch {
             showAlert("导入失败", informative: error.localizedDescription, style: .warning)
         }
@@ -275,6 +297,46 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
             try LegacyData.writeDictionary(dictionary, to: url)
         } catch {
             showAlert("导出失败", informative: error.localizedDescription, style: .warning)
+        }
+    }
+
+    @objc private func exportURLListClicked() {
+        let warning = NSAlert()
+        warning.alertStyle = .warning
+        warning.messageText = "导出明文密钥？"
+        warning.informativeText = "文件中包含所有账号的 MFA 密钥，任何拿到文件的人都能生成验证码。请妥善保管，用完删除。"
+        warning.addButton(withTitle: "继续导出")
+        warning.addButton(withTitle: "取消")
+        activateApp()
+        guard warning.runModal() == .alertFirstButtonReturn else { return }
+
+        let panel = NSSavePanel()
+        panel.title = "导出 otpauth URL 列表"
+        panel.nameFieldStringValue = "GoldenPassport-otpauth.txt"
+        panel.allowedContentTypes = [.plainText]
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        do {
+            try OTPAuthList.render(store.accounts).write(to: url, atomically: true, encoding: .utf8)
+            try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path)
+        } catch {
+            showAlert("导出失败", informative: error.localizedDescription, style: .warning)
+        }
+    }
+
+    @objc private func launchAtLoginClicked() {
+        let service = SMAppService.mainApp
+        do {
+            if service.status == .enabled {
+                try service.unregister()
+            } else {
+                try service.register()
+            }
+        } catch {
+            showAlert("设置开机启动失败", informative: error.localizedDescription, style: .warning)
+        }
+        if service.status == .requiresApproval {
+            showAlert("需要在系统设置中允许", informative: "请在 系统设置 → 通用 → 登录项 中允许本 App。")
+            SMAppService.openSystemSettingsLoginItems()
         }
     }
 

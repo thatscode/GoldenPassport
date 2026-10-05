@@ -190,3 +190,28 @@ struct SettingsTests {
         #expect(HotkeyModifiers.digit(forAccountAt: 10) == nil)
     }
 }
+
+struct OTPAuthListTests {
+    @Test func roundTripKeepsNamesAndOrder() {
+        let accounts = [Account(name: "renamed", url: validURL), Account(name: "b", url: "otpauth://totp/B?secret=MZXW6YTBOI")]
+        let parsed = OTPAuthList.parse(OTPAuthList.render(accounts))
+        #expect(parsed.entries.map(\.name) == ["renamed", "b"])
+        #expect(parsed.entries.map(\.url) == accounts.map(\.url))
+        #expect(parsed.invalidLines.isEmpty)
+    }
+
+    @Test func plainURLListUsesLabelsAndReportsBadLines() {
+        let text = """
+        otpauth://totp/Acme:alice?secret=MZXW6YTBOI
+        not-a-url
+        # orphan comment
+
+        # named
+        otpauth://totp/x?secret=MZXW6YTBOI
+        otpauth://totp/x?secret=bad!
+        """
+        let parsed = OTPAuthList.parse(text)
+        #expect(parsed.entries.map(\.name) == ["Acme:alice", "named"])
+        #expect(parsed.invalidLines == [2, 7])
+    }
+}
