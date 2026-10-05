@@ -399,7 +399,7 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
     }
 
     @objc private func helpClicked() {
-        if let url = URL(string: "https://github.com/stanzhai/GoldenPassport") {
+        if let url = URL(string: "https://github.com/thatscode/GoldenPassport") {
             NSWorkspace.shared.open(url)
         }
     }
