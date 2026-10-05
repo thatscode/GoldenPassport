@@ -29,11 +29,13 @@ public struct AccountCode: Sendable {
 public enum AccountStoreError: Error, Equatable, LocalizedError {
     case emptyName
     case duplicateName(String)
+    case notFound
 
     public var errorDescription: String? {
         switch self {
         case .emptyName: return "标识不能为空。"
         case .duplicateName(let name): return "已存在名为「\(name)」的记录，请换一个标识。"
+        case .notFound: return "记录不存在，可能已被删除。"
         }
     }
 }
@@ -81,6 +83,36 @@ public final class AccountStore: @unchecked Sendable {
         }
     }
 
+    public func rename(id: UUID, to rawName: String) throws {
+        let name = rawName.trimmingCharacters(in: .whitespacesAndNewlines)
+        try lock.withLock {
+            let index = try indexOf(id)
+            try validate(name: name, excluding: id)
+            storage[index].name = name
+            try save()
+        }
+    }
+
+    public func updateURL(id: UUID, to rawURL: String) throws {
+        let url = rawURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        _ = try OTPAuthURL(string: url)
+        try lock.withLock {
+            storage[try indexOf(id)].url = url
+            try save()
+        }
+    }
+
+    /// Same semantics as SwiftUI's `onMove`: `destination` is an index in the list before the move.
+    public func move(fromOffsets source: IndexSet, toOffset destination: Int) throws {
+        try lock.withLock {
+            let moving = source.map { storage[$0] }
+            for index in source.reversed() { storage.remove(at: index) }
+            let target = destination - source.count(in: 0..<destination)
+            storage.insert(contentsOf: moving, at: target)
+            try save()
+        }
+    }
+
     /// Adds accounts whose names are not taken yet; returns how many were added.
     public func importAccounts(_ entries: [(name: String, url: String)]) throws -> Int {
         try lock.withLock {
@@ -120,6 +152,12 @@ public final class AccountStore: @unchecked Sendable {
                                result: .failure(error as? OTPAuthURLError ?? .invalidURL),
                                secondsRemaining: nil)
         }
+    }
+
+    // Must be called with the lock held.
+    private func indexOf(_ id: UUID) throws -> Int {
+        guard let index = storage.firstIndex(where: { $0.id == id }) else { throw AccountStoreError.notFound }
+        return index
     }
 
     // Must be called with the lock held.

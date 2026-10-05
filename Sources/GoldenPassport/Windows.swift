@@ -13,6 +13,7 @@ class HostedWindowController: NSObject, NSWindowDelegate {
     }
 
     var title: String { "" }
+    var resizable: Bool { false }
 
     func present() {
         if window == nil {
@@ -20,7 +21,7 @@ class HostedWindowController: NSObject, NSWindowDelegate {
                 self?.window?.close()
             }))
             window.title = title
-            window.styleMask = [.titled, .closable]
+            window.styleMask = resizable ? [.titled, .closable, .resizable] : [.titled, .closable]
             window.isReleasedWhenClosed = false
             window.delegate = self
             window.center()

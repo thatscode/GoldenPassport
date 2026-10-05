@@ -16,12 +16,18 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
     private var httpAutoStartItem: NSMenuItem!
     private var httpURLItem: NSMenuItem!
     private var hotkeysItem: NSMenuItem!
+    private var hotkeyChoiceItems: [NSMenuItem] = []
 
     private var refreshTimer: Timer?
     private var deleteMode = false
     private var httpServer: LocalHTTPServer?
 
     private lazy var addWindow = AddAccountWindowController(store: store) { [weak self] in
+        self?.rebuildMenu()
+    }
+    private lazy var manageWindow = ManageAccountsWindowController(store: store, hotkeyLabel: { [weak self] index in
+        self?.hotkeyLabel(forAccountAt: index)
+    }) { [weak self] in
         self?.rebuildMenu()
     }
     private lazy var portWindow = PortConfigWindowController(currentPort: { [weak self] in
@@ -54,7 +60,7 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         rebuildMenu()
 
         if settings.httpServerAutoStart { startHTTPServer() }
-        if settings.hotkeysEnabled { hotkeys.start(promptForPermission: false) }
+        applyHotkeySettings()
     }
 
     func shutdown() {
@@ -73,6 +79,7 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         menu.addItem(.separator())
         menu.addItem(sectionHeader("认证管理"))
         menu.addItem(item("添加...", #selector(addClicked), key: "a"))
+        menu.addItem(item("管理（排序 / 重命名）...", #selector(manageClicked), key: "m"))
         deleteItem = add(item("删除", #selector(deleteClicked), key: "d"))
         menu.addItem(item("导入...", #selector(importClicked), key: "i"))
         menu.addItem(item("导出...", #selector(exportClicked), key: "e"))
@@ -85,7 +92,21 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         menu.addItem(item("修改端口...", #selector(portClicked)))
 
         menu.addItem(.separator())
-        hotkeysItem = add(item("全局快捷键 ⇧⌘0–9 自动填入", #selector(hotkeysClicked)))
+        hotkeysItem = add(NSMenuItem(title: "全局快捷键（自动填入第 1–10 条）", action: nil, keyEquivalent: ""))
+        let hotkeyMenu = NSMenu()
+        let off = item("关闭", #selector(hotkeyChoiceClicked(_:)))
+        hotkeyMenu.addItem(off)
+        hotkeyMenu.addItem(.separator())
+        hotkeyChoiceItems = [off]
+        for modifiers in HotkeyModifiers.allCases {
+            var title = "\(modifiers.symbols) + 0–9"
+            if modifiers == .shiftCommand { title += "（旧版方式；3/4/5 与系统截图冲突）" }
+            let choice = item(title, #selector(hotkeyChoiceClicked(_:)))
+            choice.representedObject = modifiers.rawValue
+            hotkeyMenu.addItem(choice)
+            hotkeyChoiceItems.append(choice)
+        }
+        hotkeysItem.submenu = hotkeyMenu
         menu.addItem(item("帮助", #selector(helpClicked), key: "h"))
         menu.addItem(item("退出", #selector(quitClicked), key: "q"))
     }
@@ -120,9 +141,9 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
             let item = NSMenuItem(title: "", action: #selector(accountClicked(_:)), keyEquivalent: "")
             item.target = self
             item.representedObject = code.account.id
-            if index < 10 {
-                item.keyEquivalent = "\(index)"
-                item.keyEquivalentModifierMask = [.command, .shift]
+            if settings.hotkeysEnabled, let digit = HotkeyModifiers.digit(forAccountAt: index) {
+                item.keyEquivalent = "\(digit)"
+                item.keyEquivalentModifierMask = HotkeyMonitor.keyEquivalentModifierMask(settings.hotkeyModifiers)
             }
             menu.insertItem(item, at: insertAt + index)
             accountItems.append(item)
@@ -160,7 +181,11 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         httpAutoStartItem.state = settings.httpServerAutoStart ? .on : .off
         httpURLItem.title = "浏览器访问 http://localhost:\(settings.httpServerPort)"
         httpURLItem.isHidden = !running
-        hotkeysItem.state = settings.hotkeysEnabled ? .on : .off
+        for choice in hotkeyChoiceItems {
+            let modifiers = (choice.representedObject as? String).flatMap(HotkeyModifiers.init(rawValue:))
+            let selected = settings.hotkeysEnabled ? modifiers == settings.hotkeyModifiers : modifiers == nil
+            choice.state = selected ? .on : .off
+        }
     }
 
     // MARK: - NSMenuDelegate
@@ -208,6 +233,10 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
 
     @objc private func addClicked() {
         addWindow.present()
+    }
+
+    @objc private func manageClicked() {
+        manageWindow.present()
     }
 
     @objc private func deleteClicked() {
@@ -271,13 +300,35 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         portWindow.present()
     }
 
-    @objc private func hotkeysClicked() {
-        settings.hotkeysEnabled.toggle()
+    @objc private func hotkeyChoiceClicked(_ sender: NSMenuItem) {
+        if let modifiers = (sender.representedObject as? String).flatMap(HotkeyModifiers.init(rawValue:)) {
+            settings.hotkeyModifiers = modifiers
+            settings.hotkeysEnabled = true
+            if !HotkeyMonitor.requestAccessibilityIfNeeded() {
+                showAlert("需要「辅助功能」权限才能自动填入",
+                          informative: "请在系统设置中允许本 App 控制电脑。未授权前，按快捷键只会把验证码复制到剪贴板。")
+            }
+        } else {
+            settings.hotkeysEnabled = false
+        }
+        applyHotkeySettings()
+        if settings.hotkeysEnabled, !hotkeys.failedDigits.isEmpty {
+            let keys = hotkeys.failedDigits.map { "\(settings.hotkeyModifiers.symbols)\($0)" }.joined(separator: "、")
+            showAlert("部分快捷键注册失败", informative: "\(keys) 已被其他程序占用，可换一组修饰键。")
+        }
+    }
+
+    private func applyHotkeySettings() {
         if settings.hotkeysEnabled {
-            hotkeys.start(promptForPermission: true)
+            hotkeys.start(modifiers: settings.hotkeyModifiers)
         } else {
             hotkeys.stop()
         }
+    }
+
+    private func hotkeyLabel(forAccountAt index: Int) -> String? {
+        guard settings.hotkeysEnabled, let digit = HotkeyModifiers.digit(forAccountAt: index) else { return nil }
+        return "\(settings.hotkeyModifiers.symbols)\(digit)"
     }
 
     @objc private func helpClicked() {

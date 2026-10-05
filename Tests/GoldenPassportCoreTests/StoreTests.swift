@@ -114,3 +114,79 @@ struct MigrationTests {
         #expect(try FileManager.default.contentsOfDirectory(atPath: seed.path).sorted() == seedListing)
     }
 }
+
+struct AccountEditingTests {
+    func store(_ names: [String]) throws -> (AccountStore, URL) {
+        let dir = try makeTempDirectory()
+        let store = AccountStore(directory: dir)
+        for name in names { try store.add(name: name, url: validURL) }
+        return (store, dir)
+    }
+
+    @Test func renamePersistsAndKeepsPosition() throws {
+        let (store, dir) = try store(["a", "b", "c"])
+        try store.rename(id: store.accounts[1].id, to: "  B2 ")
+        #expect(AccountStore(directory: dir).accounts.map(\.name) == ["a", "B2", "c"])
+    }
+
+    @Test func renameToOwnNameIsAllowed() throws {
+        let (store, _) = try store(["a"])
+        try store.rename(id: store.accounts[0].id, to: "a")
+        #expect(store.accounts.map(\.name) == ["a"])
+    }
+
+    @Test func renameRejectsDuplicateAndEmpty() throws {
+        let (store, _) = try store(["a", "b"])
+        let id = store.accounts[1].id
+        #expect(throws: AccountStoreError.duplicateName("a")) { try store.rename(id: id, to: "a") }
+        #expect(throws: AccountStoreError.emptyName) { try store.rename(id: id, to: " ") }
+        #expect(store.accounts.map(\.name) == ["a", "b"])
+    }
+
+    @Test func updateURLValidates() throws {
+        let (store, _) = try store(["a"])
+        let id = store.accounts[0].id
+        let newURL = "otpauth://totp/x?secret=MZXW6YTBOI&digits=8"
+        try store.updateURL(id: id, to: " \(newURL)\n")
+        #expect(store.accounts[0].url == newURL)
+        #expect(throws: OTPAuthURLError.missingSecret) { try store.updateURL(id: id, to: "otpauth://totp/x") }
+        #expect(store.accounts[0].url == newURL)
+    }
+
+    @Test(arguments: [
+        (IndexSet([0]), 3, ["b", "c", "a"]),
+        (IndexSet([2]), 0, ["c", "a", "b"]),
+        (IndexSet([0, 1]), 3, ["c", "a", "b"]),
+    ])
+    func moveMatchesSwiftUISemantics(source: IndexSet, destination: Int, expected: [String]) throws {
+        let (store, dir) = try store(["a", "b", "c"])
+        try store.move(fromOffsets: source, toOffset: destination)
+        #expect(AccountStore(directory: dir).accounts.map(\.name) == expected)
+    }
+
+    @Test func unknownIDThrows() throws {
+        let (store, _) = try store(["a"])
+        #expect(throws: AccountStoreError.notFound) { try store.rename(id: UUID(), to: "x") }
+    }
+}
+
+struct SettingsTests {
+    @Test func hotkeyDefaultsAndPersistence() throws {
+        let dir = try makeTempDirectory()
+        let defaults = AppEnvironment.Defaults(httpPort: 17304, hotkeysEnabled: true)
+        let settings = SettingsStore(directory: dir, defaults: defaults)
+        #expect(settings.hotkeyModifiers == .controlOptionCommand)
+        #expect(settings.hotkeysEnabled)
+        settings.hotkeyModifiers = .shiftCommand
+        settings.hotkeysEnabled = false
+        let reloaded = SettingsStore(directory: dir, defaults: defaults)
+        #expect(reloaded.hotkeyModifiers == .shiftCommand)
+        #expect(reloaded.hotkeysEnabled == false)
+    }
+
+    @Test func hotkeyDigitsFollowLegacyNumbering() {
+        #expect(HotkeyModifiers.digit(forAccountAt: 0) == 0)
+        #expect(HotkeyModifiers.digit(forAccountAt: 9) == 9)
+        #expect(HotkeyModifiers.digit(forAccountAt: 10) == nil)
+    }
+}
