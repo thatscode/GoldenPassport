@@ -20,6 +20,7 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
     private var hotkeysItem: NSMenuItem!
     private var hotkeyChoiceItems: [NSMenuItem] = []
     private var launchAtLoginItem: NSMenuItem!
+    private var languageChoiceItems: [NSMenuItem] = []
 
     private var refreshTimer: Timer?
     private var deleteMode = false
@@ -117,6 +118,17 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         }
         hotkeysItem.submenu = hotkeyMenu
         launchAtLoginItem = add(item(String(localized: "开机自动启动"), #selector(launchAtLoginClicked)))
+        // Bilingual title so the item can be found whatever language the menu is in.
+        let languageItem = add(NSMenuItem(title: String(localized: "语言 / Language"), action: nil, keyEquivalent: ""))
+        let languageMenu = NSMenu()
+        languageChoiceItems = [("", String(localized: "跟随系统")), ("zh-Hans", "简体中文"), ("en", "English")].map { code, title in
+            let choice = item(title, #selector(languageChoiceClicked(_:)))
+            choice.representedObject = code
+            languageMenu.addItem(choice)
+            return choice
+        }
+        languageMenu.insertItem(.separator(), at: 1)
+        languageItem.submenu = languageMenu
         menu.addItem(item(String(localized: "帮助"), #selector(helpClicked), key: "h"))
         menu.addItem(item(String(localized: "退出"), #selector(quitClicked), key: "q"))
     }
@@ -193,6 +205,10 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         httpURLItem.isHidden = !running
         httpNoticeItem.isHidden = !running
         launchAtLoginItem.state = SMAppService.mainApp.status == .enabled ? .on : .off
+        let language = Self.languageOverride ?? ""
+        for choice in languageChoiceItems {
+            choice.state = (choice.representedObject as? String) == language ? .on : .off
+        }
         for choice in hotkeyChoiceItems {
             let modifiers = (choice.representedObject as? String).flatMap(HotkeyModifiers.init(rawValue:))
             let selected = settings.hotkeysEnabled ? modifiers == settings.hotkeyModifiers : modifiers == nil
@@ -434,6 +450,36 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
     }
 
     @objc private func quitClicked() {
+        NSApp.terminate(nil)
+    }
+
+    /// The per-app language, stored as AppleLanguages in the app's own defaults domain:
+    /// the same setting System Settings → Language & Region → Applications writes.
+    private static var languageOverride: String? {
+        (UserDefaults.standard.persistentDomain(forName: Bundle.main.bundleIdentifier ?? "")?["AppleLanguages"] as? [String])?.first
+            .map { $0.hasPrefix("zh") ? "zh-Hans" : "en" }
+    }
+
+    @objc private func languageChoiceClicked(_ sender: NSMenuItem) {
+        let code = sender.representedObject as? String ?? ""
+        guard code != (Self.languageOverride ?? "") else { return }
+        if code.isEmpty {
+            UserDefaults.standard.removeObject(forKey: "AppleLanguages")
+        } else {
+            UserDefaults.standard.set([code], forKey: "AppleLanguages")
+        }
+        let alert = NSAlert()
+        alert.messageText = String(localized: "重新启动 GoldenPassport 后生效")
+        alert.addButton(withTitle: String(localized: "立即重启"))
+        alert.addButton(withTitle: String(localized: "稍后"))
+        activateApp()
+        guard alert.runModal() == .alertFirstButtonReturn else { return }
+        // Start the new instance only after this one has quit, so the global hotkeys
+        // and the HTTP port are free again.
+        let relaunch = Process()
+        relaunch.executableURL = URL(fileURLWithPath: "/bin/sh")
+        relaunch.arguments = ["-c", "while kill -0 \(ProcessInfo.processInfo.processIdentifier) 2>/dev/null; do sleep 0.2; done; open \"$0\"", Bundle.main.bundlePath]
+        try? relaunch.run()
         NSApp.terminate(nil)
     }
 

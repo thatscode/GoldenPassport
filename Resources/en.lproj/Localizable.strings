@@ -95,3 +95,8 @@
 "未知" = "unknown";
 "未命名 %lld" = "Untitled %lld";
 "、" = ", ";
+"语言 / Language" = "Language / 语言";
+"跟随系统" = "System Default";
+"重新启动 GoldenPassport 后生效" = "Restart GoldenPassport to apply the change";
+"立即重启" = "Restart Now";
+"稍后" = "Later";

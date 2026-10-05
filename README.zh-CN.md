@@ -10,7 +10,7 @@ macOS 菜单栏上的原生 Google Authenticator（谷歌身份验证器）。�
 
 - 原生 Swift 编写，**Apple Silicon 原生运行**（通用版也支持 Intel 芯片），需要 macOS 13 或更高版本
 - 不依赖任何第三方库
-- 支持简体中文和英文界面，跟随系统语言。如果系统语言是英文、但想让 GoldenPassport 显示中文：系统设置 → 通用 → 语言与地区 → 应用程序，为 GoldenPassport 单独选择「简体中文」
+- 支持简体中文和英文界面：默认跟随系统语言，也可以在菜单「语言 / Language」里固定为简体中文或英文
 
 # 截图
 
@@ -145,6 +145,7 @@ macOS 菜单栏上的原生 Google Authenticator（谷歌身份验证器）。�
 | HTTP 接口 | 开启或停止本地接口、设置随启动开启、在浏览器中打开、修改端口 |
 | 全局快捷键 | 选择快捷键的修饰键，或者关闭 |
 | 开机自动启动 | 登录时自动启动 GoldenPassport |
+| 语言 / Language | 跟随系统，或固定使用简体中文 / English（切换后会重启 App） |
 | 帮助（⌘H） | 打开 GitHub 项目主页 |
 
 ### 全局快捷键

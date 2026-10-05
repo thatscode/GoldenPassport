@@ -13,8 +13,8 @@ A native Google Authenticator for the macOS menu bar: TOTP codes one click (or o
 
 - Native Swift, **Apple Silicon native** (universal builds also run on Intel), macOS 13 or later
 - No third-party dependencies
-- English and Simplified Chinese interface, following the system language. To pick one for
-  GoldenPassport only: System Settings → General → Language & Region → Applications
+- English and Simplified Chinese interface: follows the system language, or pick one in the
+  menu under 语言 / Language
 
 # Screenshots
 
@@ -192,6 +192,7 @@ Click the key icon in the menu bar. Each account shows its current code; click o
 | HTTP 接口 | Start or stop the local API, start it at launch, open it in the browser, change the port |
 | 全局快捷键 | Choose the modifier keys for the hotkeys, or turn them off |
 | 开机自动启动 | Launch GoldenPassport at login |
+| 语言 / Language | Follow the system language, or always use 简体中文 or English (restarts the app) |
 | 帮助 (⌘H) | Open the project page on GitHub |
 
 ### Global hotkeys
