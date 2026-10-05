@@ -14,10 +14,10 @@ BUILD_NUMBER="$(git -C "$ROOT" rev-list --count HEAD 2>/dev/null || echo 1)"
 
 case "$VARIANT" in
   dev)
-    APP_NAME="GoldenPassport Dev"; BUNDLE_ID="site.stanzhai.GoldenPassport.dev"
+    APP_NAME="GoldenPassport Dev"; EXECUTABLE="GoldenPassport Dev"; BUNDLE_ID="site.stanzhai.GoldenPassport.dev"
     DATA_DIR="GoldenPassport-Dev"; SEED_DIR="GoldenPassport"; PORT=17305; HOTKEYS=false ;;
   release)
-    APP_NAME="GoldenPassport"; BUNDLE_ID="site.stanzhai.GoldenPassport"
+    APP_NAME="GoldenPassport"; EXECUTABLE="GoldenPassport"; BUNDLE_ID="site.stanzhai.GoldenPassport"
     DATA_DIR="GoldenPassport"; SEED_DIR=""; PORT=17304; HOTKEYS=true ;;
   *) echo "usage: $0 dev|release" >&2; exit 1 ;;
 esac
@@ -31,7 +31,7 @@ BIN_DIR="$(xcrun swift build -c release --package-path "$ROOT" --scratch-path "$
 APP="$BUILD_ROOT/$VARIANT/$APP_NAME.app"
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
-cp "$BIN_DIR/GoldenPassport" "$APP/Contents/MacOS/GoldenPassport"
+cp "$BIN_DIR/GoldenPassport" "$APP/Contents/MacOS/$EXECUTABLE"
 cp "$ROOT/Resources/statusIcon.png" "$APP/Contents/Resources/"
 
 ICONSET="$BUILD_ROOT/AppIcon.iconset"
@@ -48,7 +48,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 <plist version="1.0">
 <dict>
 	<key>CFBundleDevelopmentRegion</key><string>zh_CN</string>
-	<key>CFBundleExecutable</key><string>GoldenPassport</string>
+	<key>CFBundleExecutable</key><string>$EXECUTABLE</string>
 	<key>CFBundleIconFile</key><string>AppIcon</string>
 	<key>CFBundleIdentifier</key><string>$BUNDLE_ID</string>
 	<key>CFBundleInfoDictionaryVersion</key><string>6.0</string>
@@ -75,4 +75,4 @@ codesign --force --options runtime --timestamp=none --sign - "$APP"
 codesign --verify --strict "$APP"
 
 echo "Built $APP"
-echo "  archs: $(lipo -archs "$APP/Contents/MacOS/GoldenPassport")  version: $VERSION ($BUILD_NUMBER)  bundle id: $BUNDLE_ID"
+echo "  archs: $(lipo -archs "$APP/Contents/MacOS/$EXECUTABLE")  version: $VERSION ($BUILD_NUMBER)  bundle id: $BUNDLE_ID"

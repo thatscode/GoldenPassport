@@ -40,8 +40,12 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
             let icon = NSImage(named: "statusIcon") ?? NSImage(systemSymbolName: "key.fill", accessibilityDescription: nil)
             icon?.size = NSSize(width: 20, height: 20)
             icon?.isTemplate = true
+            // Menu bar managers (e.g. Bartender's search) and VoiceOver identify the item by this label.
+            let appName = Bundle.main.object(forInfoDictionaryKey: "CFBundleName") as? String ?? "GoldenPassport"
+            icon?.accessibilityDescription = appName
             button.image = icon
-            button.toolTip = Bundle.main.object(forInfoDictionaryKey: "CFBundleName") as? String
+            button.setAccessibilityTitle(appName)
+            button.toolTip = appName
         }
         menu.delegate = self
         menu.autoenablesItems = false
