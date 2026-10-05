@@ -25,13 +25,16 @@ public struct Settings: Codable, Equatable, Sendable {
     public var httpServerPort: Int?
     public var hotkeysEnabled: Bool?
     public var hotkeyModifiers: HotkeyModifiers?
+    public var httpNoticeSuppressed: Bool?
 
     public init(httpServerAutoStart: Bool? = nil, httpServerPort: Int? = nil,
-                hotkeysEnabled: Bool? = nil, hotkeyModifiers: HotkeyModifiers? = nil) {
+                hotkeysEnabled: Bool? = nil, hotkeyModifiers: HotkeyModifiers? = nil,
+                httpNoticeSuppressed: Bool? = nil) {
         self.httpServerAutoStart = httpServerAutoStart
         self.httpServerPort = httpServerPort
         self.hotkeysEnabled = hotkeysEnabled
         self.hotkeyModifiers = hotkeyModifiers
+        self.httpNoticeSuppressed = httpNoticeSuppressed
     }
 }
 
@@ -71,6 +74,12 @@ public final class SettingsStore {
     public var hotkeyModifiers: HotkeyModifiers {
         get { settings.hotkeyModifiers ?? .controlOptionCommand }
         set { update { $0.hotkeyModifiers = newValue } }
+    }
+
+    /// "Don't show again" for the notice shown when the HTTP API is switched on.
+    public var httpNoticeSuppressed: Bool {
+        get { settings.httpNoticeSuppressed ?? false }
+        set { update { $0.httpNoticeSuppressed = newValue } }
     }
 
     private func update(_ change: (inout Settings) -> Void) {

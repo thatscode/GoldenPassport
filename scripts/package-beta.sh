@@ -15,9 +15,9 @@ STAGE="$BUILD_ROOT/dist/$NAME"
 rm -rf "$STAGE" "$STAGE.zip"
 mkdir -p "$STAGE"
 ditto "$BUILD_ROOT/release/GoldenPassport.app" "$STAGE/GoldenPassport.app"
-cp "$ROOT/scripts/install.sh" "$ROOT/scripts/rollback.sh" "$STAGE/"
+cp "$ROOT/scripts/install.sh" "$ROOT/scripts/rollback.sh" "$ROOT/scripts/cleanup.sh" "$STAGE/"
 cp "$ROOT/docs/beta-testing.md" "$STAGE/测试说明.md"
-chmod +x "$STAGE/install.sh" "$STAGE/rollback.sh"
+chmod +x "$STAGE/install.sh" "$STAGE/rollback.sh" "$STAGE/cleanup.sh"
 (cd "$BUILD_ROOT/dist" && ditto -c -k --keepParent "$NAME" "$NAME.zip")
 
 echo "Packaged $STAGE.zip"

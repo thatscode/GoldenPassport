@@ -85,4 +85,4 @@ if [ "${GP_NO_LAUNCH:-0}" != "1" ] && [ -d "$TARGET" ]; then
   open "$TARGET"
 fi
 printf '\n回退完成。备份仍保留在 %s\n' "$BACKUP"
-printf '⚠️  备份中含有全部 MFA 密钥的未加密副本，不再需要时请删除：rm -rf "%s"\n' "$BACKUP_ROOT"
+printf '⚠️  备份中含有全部 MFA 密钥的未加密副本，请勿外传。不再需要时请删除：rm -rf "%s"\n' "$BACKUP_ROOT"

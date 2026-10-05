@@ -16,6 +16,7 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
     private var httpSwitchItem: NSMenuItem!
     private var httpAutoStartItem: NSMenuItem!
     private var httpURLItem: NSMenuItem!
+    private var httpNoticeItem: NSMenuItem!
     private var hotkeysItem: NSMenuItem!
     private var hotkeyChoiceItems: [NSMenuItem] = []
     private var launchAtLoginItem: NSMenuItem!
@@ -95,6 +96,8 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         httpSwitchItem = add(item("开启 HTTP 服务", #selector(httpSwitchClicked)))
         httpAutoStartItem = add(item("启动时同时开启 HTTP 服务", #selector(httpAutoStartClicked)))
         httpURLItem = add(item("", #selector(httpURLClicked)))
+        httpNoticeItem = add(NSMenuItem(title: "⚠️ 运行中：本机任何程序都能读取验证码，不用时请关闭", action: nil, keyEquivalent: ""))
+        httpNoticeItem.isEnabled = false
         menu.addItem(item("修改端口...", #selector(portClicked)))
 
         menu.addItem(.separator())
@@ -188,6 +191,7 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         httpAutoStartItem.state = settings.httpServerAutoStart ? .on : .off
         httpURLItem.title = "浏览器访问 http://localhost:\(settings.httpServerPort)"
         httpURLItem.isHidden = !running
+        httpNoticeItem.isHidden = !running
         launchAtLoginItem.state = SMAppService.mainApp.status == .enabled ? .on : .off
         for choice in hotkeyChoiceItems {
             let modifiers = (choice.representedObject as? String).flatMap(HotkeyModifiers.init(rawValue:))
@@ -350,6 +354,30 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
             stopHTTPServer()
         } else {
             startHTTPServer()
+            showHTTPNoticeIfNeeded()
+        }
+    }
+
+    /// The API has no authentication: anything running as this user can read every code.
+    private func showHTTPNoticeIfNeeded() {
+        guard !settings.httpNoticeSuppressed else { return }
+        let alert = NSAlert()
+        alert.alertStyle = .informational
+        alert.messageText = "HTTP 服务已开启"
+        alert.informativeText = """
+            现在可以通过 http://localhost:\(settings.httpServerPort) 获取验证码。
+
+            • 服务只监听本机，局域网和外网无法访问。
+            • 但没有访问密码：这台 Mac 上以你的身份运行的任何程序（脚本、命令行工具、浏览器扩展等）都能读取全部验证码。
+            • 不用时建议关闭；如果不需要，也可以取消「启动时同时开启 HTTP 服务」。
+            """
+        alert.addButton(withTitle: "知道了")
+        alert.showsSuppressionButton = true
+        alert.suppressionButton?.title = "不再提示"
+        activateApp()
+        alert.runModal()
+        if alert.suppressionButton?.state == .on {
+            settings.httpNoticeSuppressed = true
         }
     }
 

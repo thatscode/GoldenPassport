@@ -7,7 +7,7 @@
 >
 > - **不要**复制、上传、打包发给别人，包括把它发给维护者排查问题；
 > - **不要**把它放进 iCloud、网盘或者其他同步目录，也不要用任何会上传到云端的备份工具备份它；
-> - 确认新版使用正常、不需要回退之后，**请立即删除**：在终端执行 `rm -rf ~/GoldenPassport-backups`；
+> - 确认新版使用正常、不需要回退之后，**请运行清理脚本删除**：在终端输入 `bash `，把 `cleanup.sh` 拖进窗口，按回车（见文末「隐私与数据清理」）；
 > - 新版的「导出」功能生成的 `.secrets`、`.txt` 文件同样是明文密钥，用完也请删除。
 
 感谢帮忙测试！0.2.0 是原生重写版：Apple Silicon 原生运行（也支持 Intel），需要 macOS 13 及以上。
@@ -65,9 +65,11 @@
 
 | 位置 | 内容 | 处理建议 |
 |---|---|---|
-| `~/GoldenPassport-backups/` | 安装前的 App 和数据的完整备份 | **删除**：`rm -rf ~/GoldenPassport-backups` |
+| `~/GoldenPassport-backups/` | 安装前的 App 和数据的完整备份 | **删除**（`cleanup.sh` 会处理） |
 | `~/Library/Application Support/GoldenPassport/accounts.json` | 新版正在使用的数据 | 保留 |
-| `~/Library/Application Support/GoldenPassport/gp.secrets` | 旧版的数据文件，留着用于回退。在新版里删除的记录，这里**仍然存在** | 确定不再回退旧版后，可以删除 |
+| `~/Library/Application Support/GoldenPassport/gp.secrets` | 旧版的数据文件，留着用于回退。在新版里删除的记录，这里**仍然存在** | 确定不再回退旧版后删除（`cleanup.sh` 会处理） |
 | 你导出的 `.secrets` / `.txt` 文件 | 明文密钥 | 用完删除 |
+
+**清理方法**：在终端输入 `bash `，把 `cleanup.sh` 拖进窗口，按回车。脚本会先确认新版数据读取正常，列出要删除的内容，输入 `yes` 后才会删除前两项（安装备份和旧版数据文件）。清理之后就**不能再回退**到旧版了，新版的使用不受影响。
 
 新版会把数据目录和旧版数据文件的权限收紧为仅本人可读（旧版是所有本机用户可读），文件内容不变。

@@ -161,6 +161,14 @@ or changed in 0.2.0 are not visible to 0.1.x. To keep them, first export a `.sec
 from 0.2.0 and import it into 0.1.x. `bash rollback.sh --restore-data` also resets the data
 directory to its pre-install state.
 
+### Cleaning up after the upgrade
+
+Once 0.2.0 works for you and you no longer need to roll back, run `bash cleanup.sh` from the same
+folder. It checks that `accounts.json` reads back cleanly, lists what it will delete (the installer
+backups and the legacy `gp.secrets` / `config.plist`, all of which contain your secrets
+unencrypted), warns if 0.2.0 holds fewer accounts than the legacy file, and deletes only after you
+type `yes`. After that, rolling back to 0.1.x is no longer possible.
+
 ### Manual installation
 
 Copy `GoldenPassport.app` to `/Applications`, then either run
@@ -214,10 +222,10 @@ echo "$code"
 > - **Installer backup**: `scripts/install.sh` copies the whole data directory to
 >   `~/GoldenPassport-backups/<timestamp>/` so it can roll back. This is a plaintext copy of
 >   every secret (owner-only permissions). Never share or sync it, and delete it once you no
->   longer need to roll back: `rm -rf ~/GoldenPassport-backups`.
+>   longer need to roll back (`scripts/cleanup.sh`, see below).
 > - **Legacy data file**: after migration, `gp.secrets` stays in the data directory so the
 >   old app keeps working. It is never updated again, so **accounts you delete in 0.2.x
->   remain in it**. Delete it once you are sure you won't go back to 0.1.x.
+>   remain in it**. Delete it once you are sure you won't go back to 0.1.x (`scripts/cleanup.sh`).
 > - **Exports**: both `.secrets` and `.txt` exports contain every secret unencrypted.
 > - **Dev build**: `make dev` copies the release data into `GoldenPassport-Dev/` on first
 >   launch; delete that directory when you are done developing.
@@ -250,7 +258,9 @@ runs the same migration headlessly and verifies it; `scripts/install.sh` relies 
 The Dev build copies the release data into `GoldenPassport-Dev/` instead and never writes
 to the release data directory, so it can run next to the installed app.
 
-`scripts/rollback.sh` restores the app replaced by `install.sh`. Tester instructions
+`scripts/rollback.sh` restores the app replaced by `install.sh`. `scripts/cleanup.sh` deletes the
+installer backups and the legacy `gp.secrets` / `config.plist` once you are done with 0.1.x; it
+refuses to run unless 0.2.x is installed and `accounts.json` reads back cleanly. Tester instructions
 (Chinese) are in [`docs/beta-testing.md`](docs/beta-testing.md).
 
 # Roadmap

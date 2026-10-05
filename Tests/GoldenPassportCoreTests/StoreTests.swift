@@ -247,6 +247,21 @@ struct SettingsTests {
         #expect(reloaded.hotkeysEnabled == false)
     }
 
+    @Test func httpNoticeSuppressionPersistsAndOldFilesStillLoad() throws {
+        let dir = try makeTempDirectory()
+        let defaults = AppEnvironment.Defaults(httpPort: 17304, hotkeysEnabled: true)
+        // settings.json written by an earlier 0.2.0 build, before the key existed.
+        try Data(#"{"httpServerAutoStart":false,"httpServerPort":18000}"#.utf8)
+            .write(to: dir.appendingPathComponent(SettingsStore.fileName))
+        let settings = SettingsStore(directory: dir, defaults: defaults)
+        #expect(settings.httpServerPort == 18000)
+        #expect(settings.httpNoticeSuppressed == false)
+        settings.httpNoticeSuppressed = true
+        let reloaded = SettingsStore(directory: dir, defaults: defaults)
+        #expect(reloaded.httpNoticeSuppressed)
+        #expect(reloaded.httpServerPort == 18000)
+    }
+
     @Test func hotkeyDigitsFollowLegacyNumbering() {
         #expect(HotkeyModifiers.digit(forAccountAt: 0) == 0)
         #expect(HotkeyModifiers.digit(forAccountAt: 9) == 9)

@@ -122,6 +122,10 @@ macOS 菜单栏上的原生 Google Authenticator（谷歌身份验证器）。�
 
 在同一个文件夹里执行 `bash rollback.sh`，就会恢复安装前的 App。原来的 `gp.secrets` 从未被修改过，所以 0.1.x 能看到原来的全部账号。在 0.2.0 里新增或修改的账号，0.1.x 看不到。如果要保留，先在 0.2.0 里导出 `.secrets` 备份文件，回退后再导入 0.1.x。执行 `bash rollback.sh --restore-data` 会把数据目录也恢复到安装前。
 
+### 升级后的清理
+
+确认 0.2.0 使用正常、不再需要回退后，在同一个文件夹里执行 `bash cleanup.sh`。脚本会先确认 `accounts.json` 读取正常，再列出要删除的内容：安装备份，以及旧版的 `gp.secrets` / `config.plist`，这些都含有未加密的密钥。如果新版的账号比旧版数据文件里的少，会额外提醒。输入 `yes` 后才会删除。清理之后，就不能再回退到 0.1.x 了。
+
 ### 手动安装
 
 把 `GoldenPassport.app` 复制到「应用程序」，然后二选一：执行 `xattr -dr com.apple.quarantine /Applications/GoldenPassport.app`；或者先打开一次，再到 系统设置 → 隐私与安全性 里点「仍要打开」。首次启动时会自动迁移数据，但手动安装没有备份，也没有迁移核对。
@@ -166,8 +170,8 @@ echo "$code"
 > [!CAUTION]
 > **从 0.1.x 升级后，磁盘上会留有未加密的 MFA 密钥副本。**
 >
-> - **安装脚本的备份**：`scripts/install.sh` 会把整个数据目录复制到 `~/GoldenPassport-backups/<时间>/`，用于回退。这是全部密钥的明文副本（权限为仅本人可读）。不要分享或同步它，确认不再需要回退后请删除：`rm -rf ~/GoldenPassport-backups`。
-> - **旧版数据文件**：迁移后 `gp.secrets` 会保留在数据目录里，旧版才能继续使用。它之后不再更新，所以**你在 0.2.x 里删除的账号，密钥仍然留在这个文件里**。确定不会再回到 0.1.x 后，请删除它。
+> - **安装脚本的备份**：`scripts/install.sh` 会把整个数据目录复制到 `~/GoldenPassport-backups/<时间>/`，用于回退。这是全部密钥的明文副本（权限为仅本人可读）。不要分享或同步它，确认不再需要回退后请删除（用 `scripts/cleanup.sh`，见下文）。
+> - **旧版数据文件**：迁移后 `gp.secrets` 会保留在数据目录里，旧版才能继续使用。它之后不再更新，所以**你在 0.2.x 里删除的账号，密钥仍然留在这个文件里**。确定不会再回到 0.1.x 后，请删除它（用 `scripts/cleanup.sh`）。
 > - **导出文件**：`.secrets` 和 `.txt` 两种导出文件都包含未加密的全部密钥。
 > - **开发版**：`make dev` 首次启动时会把正式版的数据复制到 `GoldenPassport-Dev/`，开发结束后请删除这个目录。
 
@@ -189,7 +193,7 @@ make beta      # 通用版 + install.sh / rollback.sh / 测试说明，打包为
 
 首次启动时，0.1.x 的数据（`gp.secrets`、`config.plist`）会在同一目录下迁移为 `accounts.json` / `settings.json`，旧文件保留不动（见[数据与安全](#数据与安全)）。`GoldenPassport --migrate-data [--data-dir PATH]` 可以在不打开界面的情况下执行同样的迁移并核对结果，`scripts/install.sh` 就是靠它完成核对的。开发版会把正式版的数据复制到 `GoldenPassport-Dev/`，从不写入正式版的数据目录，所以可以和已安装的正式版同时运行。
 
-`scripts/rollback.sh` 用于恢复被 `install.sh` 替换掉的 App。内测说明见 [`docs/beta-testing.md`](docs/beta-testing.md)。
+`scripts/rollback.sh` 用于恢复被 `install.sh` 替换掉的 App。`scripts/cleanup.sh` 用于在确定不再回到 0.1.x 后，删除安装备份和旧版的 `gp.secrets` / `config.plist`；只有在已安装 0.2.x、并且 `accounts.json` 读取正常时，它才会执行。内测说明见 [`docs/beta-testing.md`](docs/beta-testing.md)。
 
 # 后续计划
 
