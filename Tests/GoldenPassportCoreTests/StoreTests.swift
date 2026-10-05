@@ -156,6 +156,22 @@ struct MigrationCheckTests {
         #expect(try String(contentsOf: dir.appendingPathComponent(AccountStore.fileName), encoding: .utf8) == "not json")
     }
 
+    @Test func tightensLegacyPermissionsWithoutTouchingContents() throws {
+        let fm = FileManager.default
+        let dir = try makeTempDirectory()
+        let secrets = dir.appendingPathComponent(LegacyData.secretsFileName)
+        try LegacyData.writeDictionary(["a": validURL], to: secrets)
+        try fm.setAttributes([.posixPermissions: 0o644], ofItemAtPath: secrets.path)
+        try fm.setAttributes([.posixPermissions: 0o755], ofItemAtPath: dir.path)
+        let before = try Data(contentsOf: secrets)
+
+        try environment(dir).prepareDataDirectory()
+
+        #expect((try fm.attributesOfItem(atPath: secrets.path)[.posixPermissions] as? NSNumber)?.intValue == 0o600)
+        #expect((try fm.attributesOfItem(atPath: dir.path)[.posixPermissions] as? NSNumber)?.intValue == 0o700)
+        #expect(try Data(contentsOf: secrets) == before)
+    }
+
     @Test func emptyDirectoryIsNoData() throws {
         let check = try MigrationCheck.run(environment: environment(try makeTempDirectory()))
         #expect(check.status == .noData && check.accountCount == 0 && check.isConsistent)

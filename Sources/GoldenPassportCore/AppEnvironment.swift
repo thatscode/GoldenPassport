@@ -58,6 +58,13 @@ public struct AppEnvironment: Sendable {
             }
         }
 
+        // 0.1.x left the directory 0755 and its files 0644, readable by every local user.
+        // Tightening permissions leaves the contents (and the old app's access) unchanged.
+        try fm.setAttributes([.posixPermissions: 0o700], ofItemAtPath: dataDirectory.path)
+        for url in [legacySecretsURL, legacyConfigURL] where fm.fileExists(atPath: url.path) {
+            try fm.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path)
+        }
+
         // AccountStore treats an unreadable file as empty and would overwrite it on the
         // next save; refuse to start instead so the user's data survives.
         if fm.fileExists(atPath: accountsURL.path) {

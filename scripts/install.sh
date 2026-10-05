@@ -8,6 +8,10 @@
 # verify data (names only, never secrets) -> launch. If migration does not verify,
 # the previous app and data are restored automatically.
 #
+# WARNING: the backup in ~/GoldenPassport-backups/ is an UNENCRYPTED copy of every
+# MFA secret. It is made owner-only (chmod go-rwx); users must delete it once they
+# no longer need to roll back.
+#
 # Environment overrides (for testing): GP_APPLICATIONS_DIR, GP_DATA_DIR,
 # GP_BACKUP_ROOT, GP_NO_LAUNCH=1.
 set -euo pipefail
@@ -97,6 +101,8 @@ if [ -d "$DATA_DIR" ]; then
   ditto "$DATA_DIR" "$BACKUP/data"
   info "数据 → $BACKUP/data"
 fi
+chmod -R go-rwx "$BACKUP"
+info "⚠️  备份里有你全部 MFA 密钥的未加密副本（权限：仅本人可读）"
 {
   echo "date=$(date '+%Y-%m-%d %H:%M:%S')"
   echo "previous_version=$OLD_VERSION"
@@ -169,5 +175,15 @@ cat <<EOF
   • 自动填入验证码需要重新授权「辅助功能」：系统设置 → 隐私与安全性 → 辅助功能。
     如果列表里已有 GoldenPassport 但不生效，先用「−」删掉，再在菜单里重新选一次快捷键。
   • 回退到安装前的版本：bash "$SCRIPT_DIR/rollback.sh"
-  • 备份位置：$BACKUP
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  ⚠️  重要：备份中含有全部 MFA 密钥的未加密副本
+      $BACKUP
+  • 拿到这个目录的人可以生成你所有账号的验证码。
+  • 不要复制、上传、发给别人，也不要放进 iCloud / 网盘等同步目录。
+  • 确认新版使用正常、不再需要回退后，请删除：
+      rm -rf "$BACKUP_ROOT"
+  • 数据目录里旧版的 gp.secrets 也会一直保留（供回退使用），
+    其中包括你之后在新版里删除的记录。
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 EOF

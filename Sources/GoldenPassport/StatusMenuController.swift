@@ -287,6 +287,7 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
     }
 
     @objc private func exportClicked() {
+        guard confirmPlaintextExport() else { return }
         let panel = NSSavePanel()
         panel.title = "导出认证信息"
         panel.nameFieldStringValue = "GoldenPassport.secrets"
@@ -300,16 +301,20 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         }
     }
 
-    @objc private func exportURLListClicked() {
+    /// Both export formats hold every secret unencrypted (.secrets is a binary plist).
+    private func confirmPlaintextExport() -> Bool {
         let warning = NSAlert()
         warning.alertStyle = .warning
         warning.messageText = "导出明文密钥？"
-        warning.informativeText = "文件中包含所有账号的 MFA 密钥，任何拿到文件的人都能生成验证码。请妥善保管，用完删除。"
+        warning.informativeText = "文件中包含所有账号的 MFA 密钥，没有加密，任何拿到文件的人都能生成验证码。请勿通过聊天工具或邮件发送，也不要放进云同步目录，用完请删除。"
         warning.addButton(withTitle: "继续导出")
         warning.addButton(withTitle: "取消")
         activateApp()
-        guard warning.runModal() == .alertFirstButtonReturn else { return }
+        return warning.runModal() == .alertFirstButtonReturn
+    }
 
+    @objc private func exportURLListClicked() {
+        guard confirmPlaintextExport() else { return }
         let panel = NSSavePanel()
         panel.title = "导出 otpauth URL 列表"
         panel.nameFieldStringValue = "GoldenPassport-otpauth.txt"
