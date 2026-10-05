@@ -34,12 +34,17 @@ mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN_DIR/GoldenPassport" "$APP/Contents/MacOS/$EXECUTABLE"
 cp "$ROOT/Resources/statusIcon.png" "$APP/Contents/Resources/"
 
-# Without any .lproj, AppKit falls back to CFBundleDevelopmentRegion (zh_CN), so the
-# status item reports a Chinese AXRoleDescription on English systems. Bartender 7
-# ignores status items whose role description isn't the system-language one.
+# UI strings are written in Simplified Chinese and used as localization keys;
+# en.lproj/Localizable.strings translates them and zh-Hans.lproj maps each key to itself
+# (otherwise Chinese lookups fall through to en). Other languages fall back to en.
+# The .lproj folders also matter for Bartender 7: without them AppKit ran in zh_CN
+# and the status item's Chinese AXRoleDescription made Bartender ignore it.
 for lproj in en zh-Hans; do
   mkdir -p "$APP/Contents/Resources/$lproj.lproj"
   printf '"CFBundleName" = "%s";\n' "$APP_NAME" > "$APP/Contents/Resources/$lproj.lproj/InfoPlist.strings"
+done
+for lproj in en zh-Hans; do
+  cp "$ROOT/Resources/$lproj.lproj/Localizable.strings" "$APP/Contents/Resources/$lproj.lproj/"
 done
 
 ICONSET="$BUILD_ROOT/AppIcon.iconset"
@@ -55,7 +60,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>CFBundleDevelopmentRegion</key><string>zh_CN</string>
+	<key>CFBundleDevelopmentRegion</key><string>en</string>
 	<key>CFBundleExecutable</key><string>$EXECUTABLE</string>
 	<key>CFBundleIconFile</key><string>AppIcon</string>
 	<key>CFBundleIdentifier</key><string>$BUNDLE_ID</string>

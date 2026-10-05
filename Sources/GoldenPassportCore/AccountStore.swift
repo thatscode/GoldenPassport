@@ -21,7 +21,7 @@ public struct AccountCode: Sendable {
     public var displayCode: String {
         switch result {
         case .success(let code): return code
-        case .failure: return "<无效密钥>"
+        case .failure: return String(localized: "<无效密钥>")
         }
     }
 }
@@ -33,9 +33,9 @@ public enum AccountStoreError: Error, Equatable, LocalizedError {
 
     public var errorDescription: String? {
         switch self {
-        case .emptyName: return "标识不能为空。"
-        case .duplicateName(let name): return "已存在名为「\(name)」的记录，请换一个标识。"
-        case .notFound: return "记录不存在，可能已被删除。"
+        case .emptyName: return String(localized: "标识不能为空。")
+        case .duplicateName(let name): return String(localized: "已存在名为「\(name)」的记录，请换一个标识。")
+        case .notFound: return String(localized: "记录不存在，可能已被删除。")
         }
     }
 }

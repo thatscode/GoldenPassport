@@ -10,12 +10,12 @@ public enum OTPAuthURLError: Error, Equatable, LocalizedError {
 
     public var errorDescription: String? {
         switch self {
-        case .invalidURL: return "无法识别的 URL，请检查是否完整复制。"
-        case .unsupportedScheme: return "不是 otpauth:// 开头的 URL。"
-        case .unsupportedType(let type): return "暂不支持 \(type) 类型，仅支持 totp。"
-        case .missingSecret: return "URL 中缺少 secret 参数。"
-        case .invalidSecret: return "secret 不是合法的 Base32 字符串。"
-        case .invalidParameter(let name): return "参数 \(name) 的取值不合法。"
+        case .invalidURL: return String(localized: "无法识别的 URL，请检查是否完整复制。")
+        case .unsupportedScheme: return String(localized: "不是 otpauth:// 开头的 URL。")
+        case .unsupportedType(let type): return String(localized: "暂不支持 \(type) 类型，仅支持 totp。")
+        case .missingSecret: return String(localized: "URL 中缺少 secret 参数。")
+        case .invalidSecret: return String(localized: "secret 不是合法的 Base32 字符串。")
+        case .invalidParameter(let name): return String(localized: "参数 \(name) 的取值不合法。")
         }
     }
 }
@@ -40,7 +40,7 @@ public struct OTPAuthURL: Equatable, Sendable {
         }
         let type = (components.host ?? "").lowercased()
         guard type == "totp" else {
-            throw OTPAuthURLError.unsupportedType(type.isEmpty ? "未知" : type)
+            throw OTPAuthURLError.unsupportedType(type.isEmpty ? String(localized: "未知") : type)
         }
 
         var params: [String: String] = [:]

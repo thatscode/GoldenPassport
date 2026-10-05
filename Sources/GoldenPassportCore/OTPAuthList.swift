@@ -23,7 +23,7 @@ public enum OTPAuthList {
             }
             if let parsed = try? OTPAuthURL(string: line) {
                 let name = pendingName ?? parsed.suggestedName
-                entries.append((name: name.isEmpty ? "未命名 \(entries.count + 1)" : name, url: line))
+                entries.append((name: name.isEmpty ? String(localized: "未命名 \(entries.count + 1)") : name, url: line))
             } else {
                 invalid.append(offset + 1)
             }

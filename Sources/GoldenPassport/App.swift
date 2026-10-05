@@ -45,7 +45,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         } catch {
             let alert = NSAlert()
             alert.alertStyle = .critical
-            alert.messageText = "无法读取数据目录"
+            alert.messageText = String(localized: "无法读取数据目录")
             alert.informativeText = "\(environment.dataDirectory.path)\n\n\(error.localizedDescription)"
             alert.runModal()
             NSApp.terminate(nil)

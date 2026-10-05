@@ -48,7 +48,7 @@ final class AddAccountWindowController: HostedWindowController {
         self.onAdded = onAdded
     }
 
-    override var title: String { "添加认证" }
+    override var title: String { String(localized: "添加认证") }
 
     override func makeContent(close: @escaping () -> Void) -> AnyView {
         AnyView(AddAccountView(store: store, onAdded: { [onAdded] in
@@ -113,7 +113,7 @@ struct AddAccountView: View {
         panel.allowsMultipleSelection = false
         guard panel.runModal() == .OK, let fileURL = panel.url else { return }
         guard let found = QRCodeReader.otpAuthURLs(in: fileURL).first else {
-            error = "图片中没有找到 otpauth:// 二维码。"
+            error = String(localized: "图片中没有找到 otpauth:// 二维码。")
             return
         }
         url = found
@@ -142,7 +142,7 @@ final class PortConfigWindowController: HostedWindowController {
         self.onSave = onSave
     }
 
-    override var title: String { "HTTP 服务端口" }
+    override var title: String { String(localized: "HTTP 服务端口") }
 
     override func makeContent(close: @escaping () -> Void) -> AnyView {
         AnyView(PortConfigView(port: String(currentPort()), onSave: { [onSave] port in
@@ -169,7 +169,7 @@ struct PortConfigView: View {
                 Button("取消", action: onCancel).keyboardShortcut(.cancelAction)
                 Button("确定") {
                     guard let value = Int(port.trimmingCharacters(in: .whitespaces)), (1...65535).contains(value) else {
-                        error = "端口号必须是 1–65535 之间的整数。"
+                        error = String(localized: "端口号必须是 1–65535 之间的整数。")
                         return
                     }
                     onSave(value)

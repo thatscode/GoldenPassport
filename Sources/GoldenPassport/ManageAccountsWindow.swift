@@ -13,7 +13,7 @@ final class ManageAccountsWindowController: HostedWindowController {
         self.onChange = onChange
     }
 
-    override var title: String { "管理认证" }
+    override var title: String { String(localized: "管理认证") }
     override var resizable: Bool { true }
 
     override func makeContent(close: @escaping () -> Void) -> AnyView {

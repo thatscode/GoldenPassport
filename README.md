@@ -13,7 +13,8 @@ A native Google Authenticator for the macOS menu bar: TOTP codes one click (or o
 
 - Native Swift, **Apple Silicon native** (universal builds also run on Intel), macOS 13 or later
 - No third-party dependencies
-- The interface is in Simplified Chinese; English localization is on the [roadmap](#roadmap)
+- English and Simplified Chinese interface, following the system language. To pick one for
+  GoldenPassport only: System Settings → General → Language & Region → Applications
 
 # Screenshots
 
@@ -267,7 +268,6 @@ refuses to run unless 0.2.x is installed and `accounts.json` reads back cleanly.
 
 - Developer ID signing and notarization, so downloads open without workarounds
 - Bring the Homebrew cask back
-- English localization
 - Optionally store secrets in the Keychain
 
 # Credits & license
