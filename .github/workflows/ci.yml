@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: [modernize, master]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        # Oldest supported toolchain (Xcode 16 / Swift 6) and the current one.
+        os: [macos-15, macos-26]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Toolchain
+        run: xcrun swift --version
+      - name: Unit tests
+        run: make test
+
+  package:
+    needs: test
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # build number = commit count
+      - name: Check shell scripts
+        run: for f in scripts/*.sh; do bash -n "$f"; done
+      - name: Build universal beta package
+        run: make beta
+      - name: Verify bundle
+        run: |
+          APP="$HOME/Library/Caches/GoldenPassport-build/release/GoldenPassport.app"
+          codesign --verify --strict "$APP"
+          lipo -archs "$APP/Contents/MacOS/GoldenPassport" | grep -q arm64
+          lipo -archs "$APP/Contents/MacOS/GoldenPassport" | grep -q x86_64
+          test -d "$APP/Contents/Resources/en.lproj"
+          # Headless migration check against an empty data directory.
+          "$APP/Contents/MacOS/GoldenPassport" --migrate-data --data-dir "$RUNNER_TEMP/gp-data"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: GoldenPassport-beta
+          path: ~/Library/Caches/GoldenPassport-build/dist/*.zip
+          retention-days: 14
