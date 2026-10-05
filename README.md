@@ -1,6 +1,6 @@
 # GoldenPassport
 
-A native implementation of Google Authenticator for Mac based on Swift3.
+A native implementation of Google Authenticator for Mac, written in Swift (Apple Silicon native, macOS 13+).
 
 # Screenshot
 
@@ -47,10 +47,23 @@ echo $code
 
 # Building
 
-GoldenPassport uses `cocoapods` as the package manager tool, you should install it first.
+Requires Xcode 16+ (Swift 6 toolchain). No third-party dependencies.
 
-1. `pod install` to install dependencies
-2. Open `GoldenPassport.xcworkspace` with Xcode to build
+```
+make test      # unit tests (TOTP RFC 6238 vectors, URL parsing, storage, migration, HTTP API)
+make dev       # isolated "GoldenPassport Dev.app": own bundle id, data dir, port 17305, hotkeys off
+make run-dev   # build and launch the Dev app
+make release   # "GoldenPassport.app", drop-in replacement for the installed app
+```
+
+Apps are written to `~/Library/Caches/GoldenPassport-build/<variant>/` (kept out of the
+source tree because iCloud-synced folders break code signing). `ARCHS="arm64 x86_64"`
+builds a universal binary.
+
+On first launch, data from 0.1.x (`gp.secrets`, `config.plist`) is migrated to
+`accounts.json` / `settings.json` in the same directory; the legacy files are left in place.
+The Dev build copies the release data into `GoldenPassport-Dev/` instead and never writes
+to the release data directory.
 
 # Todo
 

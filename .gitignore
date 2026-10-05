@@ -70,3 +70,4 @@ Packages/
 GoldenPassport.xcworkspace/
 *.lock
 .idea
+.swiftpm/
