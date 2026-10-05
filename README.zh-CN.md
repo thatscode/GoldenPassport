@@ -14,20 +14,41 @@ macOS 菜单栏上的原生 Google Authenticator（谷歌身份验证器）。�
 
 # 截图
 
-<!-- SCREENSHOT menu.png：点开菜单栏图标，显示验证码列表、倒计时，以及认证管理 / HTTP 接口 / 全局快捷键分区。真实账号名请打码。 -->
-![菜单](screenshot/menu.png)
+- [菜单栏菜单](#菜单栏菜单)
+- [添加账号](#添加账号)
+- [管理账号](#管理账号)
+- [快捷键设置](#快捷键设置)
+- [本地 HTTP 接口](#本地-http-接口)
 
-<!-- SCREENSHOT add-window.png：「添加...」窗口。如果粘贴 otpauth URL，请使用假的 secret。 -->
-![添加认证](screenshot/add-window.png)
+### 菜单栏菜单
 
-<!-- SCREENSHOT manage-window.png：「管理（排序 / 重命名）...」窗口，在某一行上打开右键菜单。 -->
-![管理认证](screenshot/manage-window.png)
+点击菜单栏上的钥匙图标。第一行是验证码刷新的倒计时。每个账号显示为「名称: 验证码」，点击即可复制验证码。前 10 个账号右侧标出了对应的全局快捷键。列表下方依次是认证管理、HTTP 接口、全局快捷键和开机自动启动。
 
-<!-- SCREENSHOT hotkeys.png：「全局快捷键（自动填入第 1–10 条）」子菜单。 -->
-![全局快捷键](screenshot/hotkeys.png)
+<img src="screenshot/menu.png" alt="菜单栏菜单" width="380">
 
-<!-- SCREENSHOT restful-api.png：浏览器打开 http://localhost:17304/，中文名正常显示。真实账号名请打码。 -->
-![RESTful API](screenshot/restful-api.png)
+### 添加账号
+
+选择「添加...」（⌘A），粘贴 `otpauth://` URL，或者点「从二维码图片识别...」选择一张二维码图片。标识会根据 URL 里的标签自动填写，添加前可以修改。
+
+<img src="screenshot/add-window.png" alt="添加账号" width="560">
+
+### 管理账号
+
+「管理（排序 / 重命名）...」（⌘M）按菜单中的顺序列出所有账号。拖动或用上下箭头调整顺序，前 10 行会标出对应的快捷键。双击可以重命名；右键可以选择「重命名」「修改 URL」「删除」，底部也有同样的按钮。
+
+<img src="screenshot/manage-window.png" alt="管理账号" width="560">
+
+### 快捷键设置
+
+在「全局快捷键」子菜单里选择配合 0–9 使用的修饰键：⌃⌥⌘（默认）、⇧⌘（0.1.x 的方式，其中 3/4/5 和系统截图快捷键冲突）、⌃⌥，或者关闭。打勾的是当前设置。
+
+<img src="screenshot/hotkeys.png" alt="全局快捷键" width="640">
+
+### 本地 HTTP 接口
+
+开启 HTTP 接口后，打开 `http://localhost:17304/` 会列出所有账号和当前的验证码。每一项都链接到 `/code/<名称>`，这个地址只返回纯文本的验证码，方便在脚本里使用。中文账号名可以正常显示。
+
+<img src="screenshot/restful-api.png" alt="浏览器中的本地 HTTP 接口" width="560">
 
 # 0.2.0 有哪些变化
 

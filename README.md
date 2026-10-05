@@ -17,25 +17,52 @@ A native Google Authenticator for the macOS menu bar: TOTP codes one click (or o
 
 # Screenshots
 
-<!-- SCREENSHOT menu.png: click the menu bar icon with several accounts; show the code list,
-     the countdown, and the 认证管理 / HTTP 接口 / 全局快捷键 sections. Blur real account names. -->
-![Status menu](screenshot/menu.png)
+- [Menu bar menu](#menu-bar-menu)
+- [Adding an account](#adding-an-account)
+- [Managing accounts](#managing-accounts)
+- [Hotkey settings](#hotkey-settings)
+- [Local HTTP API](#local-http-api)
 
-<!-- SCREENSHOT add-window.png: 添加... window with an otpauth URL pasted and the 标识 field
-     auto-filled from the URL label. Use a fake secret. -->
-![Add an account](screenshot/add-window.png)
+### Menu bar menu
 
-<!-- SCREENSHOT manage-window.png: 管理（排序 / 重命名）... window with the right-click menu
-     (重命名 / 修改 URL / 删除) open on one row. -->
-![Manage accounts](screenshot/manage-window.png)
+Click the key icon in the menu bar. The top line counts down until the codes change. Each account
+is listed as `name: code`; click a row to copy its code. The first ten accounts show their global
+hotkey on the right. Below the list are account management, the local HTTP API, hotkey settings
+and launch at login.
 
-<!-- SCREENSHOT hotkeys.png: the 全局快捷键（自动填入第 1–10 条） submenu showing the
-     ⌃⌥⌘ / ⇧⌘ / ⌃⌥ / 关闭 choices. -->
-![Global hotkeys](screenshot/hotkeys.png)
+<img src="screenshot/menu.png" alt="Menu bar menu" width="380">
 
-<!-- SCREENSHOT restful-api.png: http://localhost:17304/ in a browser listing accounts
-     (Chinese names render correctly now). Blur real account names. -->
-![RESTful API](screenshot/restful-api.png)
+### Adding an account
+
+Choose 添加... (⌘A) and paste an `otpauth://` URL, or pick a QR code image with
+从二维码图片识别.... The name (标识) is filled in from the URL label; edit it before adding if you like.
+
+<img src="screenshot/add-window.png" alt="Add an account" width="560">
+
+### Managing accounts
+
+管理（排序 / 重命名）... (⌘M) lists every account in menu order. Drag rows or use the arrow buttons
+to reorder; the first ten rows show which hotkey they get. Double-click a row to rename it, or
+right-click for 重命名 (rename), 修改 URL (edit URL) and 删除 (delete); the same actions are
+available as buttons at the bottom.
+
+<img src="screenshot/manage-window.png" alt="Manage accounts" width="560">
+
+### Hotkey settings
+
+The 全局快捷键 submenu sets the modifier keys used with 0–9: ⌃⌥⌘ (default), ⇧⌘ as in 0.1.x
+(3/4/5 clash with the system screenshot shortcuts), ⌃⌥, or 关闭 (off). The checkmark shows the
+current choice.
+
+<img src="screenshot/hotkeys.png" alt="Global hotkeys" width="640">
+
+### Local HTTP API
+
+With the HTTP API turned on, `http://localhost:17304/` lists every account with its current code.
+Each entry links to `/code/<name>`, which returns just the code as plain text for use in scripts.
+Chinese account names display correctly.
+
+<img src="screenshot/restful-api.png" alt="Local HTTP API in a browser" width="560">
 
 # What's new in 0.2.0
 
