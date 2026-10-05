@@ -78,7 +78,7 @@ struct ManageAccountsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("拖动可调整顺序，前 10 条依次对应全局快捷键 0–9。双击可重命名。")
+            Text("拖动可调整顺序，前 10 条依次对应全局快捷键 0–9。双击可重命名，右键有更多操作。")
                 .font(.callout)
                 .foregroundStyle(.secondary)
             List(selection: $selection) {
@@ -92,13 +92,22 @@ struct ManageAccountsView: View {
                                 .foregroundStyle(.secondary)
                         }
                     }
-                    .contentShape(Rectangle())
-                    .onTapGesture(count: 2) { editing = .name(account) }
                     .tag(account.id)
                 }
                 .onMove { source, destination in
                     model.perform { try $0.move(fromOffsets: source, toOffset: destination) }
                 }
+            }
+            // Unlike onTapGesture(count: 2) on the rows, this keeps single-click selection instant.
+            .contextMenu(forSelectionType: UUID.self) { ids in
+                if let account = account(for: ids) {
+                    Button("重命名...") { editing = .name(account) }
+                    Button("修改 URL...") { editing = .url(account) }
+                    Divider()
+                    Button("删除...") { confirmingDelete = account }
+                }
+            } primaryAction: { ids in
+                if let account = account(for: ids) { editing = .name(account) }
             }
             .frame(minHeight: 320)
 
@@ -142,6 +151,11 @@ struct ManageAccountsView: View {
         } message: {
             Text("删除后无法恢复，建议先导出备份。")
         }
+    }
+
+    private func account(for ids: Set<UUID>) -> Account? {
+        guard ids.count == 1, let id = ids.first else { return nil }
+        return model.accounts.first { $0.id == id }
     }
 
     private var selectedAccount: Account? {
