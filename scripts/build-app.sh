@@ -34,6 +34,14 @@ mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN_DIR/GoldenPassport" "$APP/Contents/MacOS/$EXECUTABLE"
 cp "$ROOT/Resources/statusIcon.png" "$APP/Contents/Resources/"
 
+# Without any .lproj, AppKit falls back to CFBundleDevelopmentRegion (zh_CN), so the
+# status item reports a Chinese AXRoleDescription on English systems. Bartender 7
+# ignores status items whose role description isn't the system-language one.
+for lproj in en zh-Hans; do
+  mkdir -p "$APP/Contents/Resources/$lproj.lproj"
+  printf '"CFBundleName" = "%s";\n' "$APP_NAME" > "$APP/Contents/Resources/$lproj.lproj/InfoPlist.strings"
+done
+
 ICONSET="$BUILD_ROOT/AppIcon.iconset"
 rm -rf "$ICONSET"; mkdir -p "$ICONSET"
 for size in 16 32 128 256; do
