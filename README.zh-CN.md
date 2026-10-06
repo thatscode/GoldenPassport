@@ -97,12 +97,22 @@ macOS 菜单栏上的原生 Google Authenticator（谷歌身份验证器）。�
 
 # 安装
 
+> [!IMPORTANT]
+> **目前还没有发布安装包。** 第一个正式版会在原作者确认开源协议（[#33](https://github.com/stanzhai/GoldenPassport/issues/33)）、并完成 Apple 公证后发布。在那之前，请按下面的步骤从源码构建，得到的安装包和正式版内容相同。
+
 > [!NOTE]
 > 目前的安装包**还没有经过 Apple 公证**，从网上下载后直接打开会被 macOS 拦截。下面的安装脚本会帮你处理好。Apple 公证和 Homebrew cask 都在[后续计划](#后续计划)中。现在执行 `brew install --cask goldenpassport` 装的是旧版 0.1.7，而且这个 cask 已被 Homebrew 禁用。
 
 ### 从 0.1.x 升级，或全新安装（推荐）
 
-1. 从本仓库的 [Releases](https://github.com/thatscode/GoldenPassport/releases) 页面下载 `GoldenPassport-<版本号>.zip` 并解压。
+1. 从源码构建安装包（需要 Xcode 16 或更高版本，见[从源码构建](#从源码构建)）：
+   ```sh
+   git clone https://github.com/thatscode/GoldenPassport.git
+   cd GoldenPassport
+   make beta
+   ```
+   会生成 `~/Library/Caches/GoldenPassport-build/dist/GoldenPassport-<版本号>-beta.zip`，里面有 App、`install.sh`、`rollback.sh` 和 `cleanup.sh`。把它解压。
+   （正式版发布后，改为从本仓库的 [Releases](https://github.com/thatscode/GoldenPassport/releases) 页面下载 `GoldenPassport-<版本号>.zip`。）
 2. 打开「终端」，输入 `bash `（注意后面有一个空格），把解压出来的 `install.sh` 拖进终端窗口，按回车。
 
 安装脚本会依次：

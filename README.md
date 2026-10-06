@@ -121,6 +121,12 @@ Compared with the original 0.1.7 release.
 
 # Installation
 
+> [!IMPORTANT]
+> **No release has been published yet.** The first release will follow once the original author
+> confirms a license ([#33](https://github.com/stanzhai/GoldenPassport/issues/33)) and builds are
+> notarized by Apple. Until then, build the package from source as shown below; it is the same
+> package a release will contain.
+
 > [!NOTE]
 > Builds are **not yet notarized by Apple**, so macOS blocks them when opened from a download.
 > The installer below handles this for you. Notarized releases and the Homebrew cask are on the
@@ -129,8 +135,16 @@ Compared with the original 0.1.7 release.
 
 ### Upgrading from 0.1.x, or installing fresh (recommended)
 
-1. Download `GoldenPassport-<version>.zip` from the [releases](https://github.com/thatscode/GoldenPassport/releases)
-   page of this fork and unzip it.
+1. Build the package (requires Xcode 16 or later, see [Building](#building)):
+   ```sh
+   git clone https://github.com/thatscode/GoldenPassport.git
+   cd GoldenPassport
+   make beta
+   ```
+   This creates `~/Library/Caches/GoldenPassport-build/dist/GoldenPassport-<version>-beta.zip`
+   containing the app, `install.sh`, `rollback.sh` and `cleanup.sh`. Unzip it.
+   (Once releases are published, download `GoldenPassport-<version>.zip` from the
+   [releases](https://github.com/thatscode/GoldenPassport/releases) page instead.)
 2. In Terminal, run `bash `, drag `install.sh` from the unzipped folder into the window and
    press Return.
 
