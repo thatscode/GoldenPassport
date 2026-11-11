@@ -92,6 +92,8 @@ Compared with the original 0.1.7 release.
 
 ### New features
 
+- **English interface**: 0.1.x menus were in Chinese only. The interface follows the system
+  language, or pick one in the menu under **Language / 语言**.
 - **Manage window** (⌘M): drag or use the arrow buttons to reorder, double-click to rename,
   right-click to edit the URL or delete ([#12](https://github.com/stanzhai/GoldenPassport/issues/12), [#17](https://github.com/stanzhai/GoldenPassport/issues/17), [#29](https://github.com/stanzhai/GoldenPassport/issues/29)).
 - **Configurable global hotkeys**: ⌃⌥⌘0–9 (new default), ⇧⌘0–9 (as in 0.1.x), ⌃⌥0–9, or off.
@@ -103,6 +105,10 @@ Compared with the original 0.1.7 release.
   **Check for Updates Daily** does so once a day (off by default). If a release changes the data format or needs an
   intermediate upgrade first, the prompt says so before you install anything.
 - The account name is suggested from the otpauth URL label, and pasted URLs are trimmed ([#26](https://github.com/stanzhai/GoldenPassport/issues/26)).
+- **Installer with a safety net**: `install.sh` backs up the app and data, checks every migrated
+  account and restores the previous app and data automatically if a check fails. `rollback.sh`
+  puts back the previous app, and `cleanup.sh` deletes the unencrypted leftovers once you no
+  longer need to roll back. Their messages follow the app's language.
 - **Rolling back is a round trip**: accounts you add or change in 0.1.x after rolling back are
   listed when you upgrade again, and you choose which ones to import.
 
