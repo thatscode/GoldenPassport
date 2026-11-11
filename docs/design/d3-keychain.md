@@ -131,7 +131,7 @@ README 的「GoldenPassport 无法读取数据时」一节相应补充。
 
 不需要账号，现在可以做：
 
-1. **存储抽象**（约半天）：`AccountStorage` 和 `AccountsFile`，保存失败时内存保持不变，测试用内存里的实现。用户看不到任何变化。
+1. **存储抽象**（约半天）：`AccountStorage` 和 `AccountsFile`，保存失败时内存保持不变，测试用内存里的实现。用户看不到任何变化。**已完成**，见第 11 节。
 
 需要 Developer ID 账号（C1 之后）：
 
@@ -165,3 +165,11 @@ README 的「GoldenPassport 无法读取数据时」一节相应补充。
 ## 10. 需要同步修改的文档
 
 实施钥匙串时一起改：`docs/compatibility.md` 第 1 节的表（格式 2、钥匙串条目、标记文件）和第 7 节；两份 README 的「数据与安全」和「GoldenPassport 无法读取数据时」；`docs/install.md` 和 `docs/install.zh-CN.md` 的清理表；CHANGELOG；`compat.json` 的 `dataFormat`。
+
+## 11. 实施记录
+
+- 2026-11-12，第 8 节第 1 步：
+  - `AccountStorage`（读取、保存整个列表）和格式 1 的 `AccountsFile`。`AccountStore(directory:)` 的行为不变。
+  - 每次修改都先保存，成功后才更新内存。以前保存失败时，没存下来的改动仍会出现在菜单、快捷键和 HTTP 接口里，直到下次启动才消失。
+  - 新增 3 个测试：通过任意存储读写（用内存实现）；7 种修改在保存被拒绝时都保持原样；同一批导入里重名的只加第一个。最后这个测试是因为导入改成在副本上去重而补的，先用故意改错的实现确认它会失败。
+  - 共 81 个测试通过；release 构建和测试构建都是 0 警告。

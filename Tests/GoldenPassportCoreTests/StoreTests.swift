@@ -56,6 +56,14 @@ struct AccountStoreTests {
         #expect(store.accounts[0].url == validURL)
     }
 
+    @Test func importAddsOnlyTheFirstOfTwoEntriesWithTheSameName() throws {
+        let dir = try makeTempDirectory()
+        let store = try AccountStore(directory: dir)
+        let first = "otpauth://totp/A?secret=MZXW6YTBOI"
+        #expect(try store.importAccounts([(name: "x", url: first), (name: "x", url: validURL)]) == 1)
+        #expect(try AccountStore(directory: dir).accounts.map(\.url) == [first])
+    }
+
     @Test func unreadableFileThrowsAndIsLeftAlone() throws {
         let dir = try makeTempDirectory()
         let file = dir.appendingPathComponent(AccountStore.fileName)

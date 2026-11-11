@@ -40,22 +40,56 @@ public enum AccountStoreError: Error, Equatable, LocalizedError {
     }
 }
 
-/// Ordered account list persisted as JSON. Thread-safe: the HTTP server reads it
+/// Where the account list is kept. Data format 1 keeps it in `accounts.json` (`AccountsFile`);
+/// D3 adds the login Keychain (docs/design/d3-keychain.md).
+protocol AccountStorage: Sendable {
+    /// The stored accounts, or none if nothing has been stored yet. Throws if they exist but
+    /// can't be read, so that they are never replaced by an empty list.
+    func load() throws -> [Account]
+    /// Replaces the stored list with `accounts`.
+    func save(_ accounts: [Account]) throws
+}
+
+/// Data format 1: the list as JSON in `accounts.json`, readable only by the current user.
+struct AccountsFile: AccountStorage {
+    let url: URL
+
+    init(directory: URL) {
+        url = directory.appendingPathComponent(AccountStore.fileName)
+    }
+
+    func load() throws -> [Account] {
+        try AccountStore.load(from: url)
+    }
+
+    func save(_ accounts: [Account]) throws {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        try FileStorage.writeProtected(try encoder.encode(accounts), to: url)
+    }
+}
+
+/// Ordered account list, kept in an `AccountStorage`. Thread-safe: the HTTP server reads it
 /// from a background queue while the menu mutates it on the main thread.
 public final class AccountStore: @unchecked Sendable {
     public static let fileName = "accounts.json"
     /// Version of the format of `fileName` (docs/compatibility.md); 0 is the 0.1.x `gp.secrets`.
     public static let dataFormat = 1
 
-    private let fileURL: URL
+    private let storage: any AccountStorage
     private let lock = NSLock()
-    private var storage: [Account]
+    private var list: [Account]
 
     /// Throws `UnreadableDataFileError` if the file exists but cannot be read: starting
     /// with an empty list would overwrite the user's accounts on the next save.
-    public init(directory: URL) throws {
-        fileURL = directory.appendingPathComponent(Self.fileName)
-        storage = try Self.load(from: fileURL)
+    public convenience init(directory: URL) throws {
+        try self.init(storage: AccountsFile(directory: directory))
+    }
+
+    /// Throws if `storage` holds accounts it can't read, for the same reason.
+    init(storage: any AccountStorage) throws {
+        self.storage = storage
+        list = try storage.load()
     }
 
     /// The accounts stored in `url`, or none if the file does not exist.
@@ -69,11 +103,11 @@ public final class AccountStore: @unchecked Sendable {
     }
 
     public var accounts: [Account] {
-        lock.withLock { storage }
+        lock.withLock { list }
     }
 
     public var count: Int {
-        lock.withLock { storage.count }
+        lock.withLock { list.count }
     }
 
     @discardableResult
@@ -84,16 +118,14 @@ public final class AccountStore: @unchecked Sendable {
         return try lock.withLock {
             try validate(name: name, excluding: nil)
             let account = Account(name: name, url: url)
-            storage.append(account)
-            try save()
+            try commit(list + [account])
             return account
         }
     }
 
     public func remove(id: UUID) throws {
         try lock.withLock {
-            storage.removeAll { $0.id == id }
-            try save()
+            try commit(list.filter { $0.id != id })
         }
     }
 
@@ -102,8 +134,9 @@ public final class AccountStore: @unchecked Sendable {
         try lock.withLock {
             let index = try indexOf(id)
             try validate(name: name, excluding: id)
-            storage[index].name = name
-            try save()
+            var updated = list
+            updated[index].name = name
+            try commit(updated)
         }
     }
 
@@ -111,39 +144,40 @@ public final class AccountStore: @unchecked Sendable {
         let url = rawURL.trimmingCharacters(in: .whitespacesAndNewlines)
         _ = try OTPAuthURL(string: url)
         try lock.withLock {
-            storage[try indexOf(id)].url = url
-            try save()
+            var updated = list
+            updated[try indexOf(id)].url = url
+            try commit(updated)
         }
     }
 
     /// Same semantics as SwiftUI's `onMove`: `destination` is an index in the list before the move.
     public func move(fromOffsets source: IndexSet, toOffset destination: Int) throws {
         try lock.withLock {
-            let moving = source.map { storage[$0] }
-            for index in source.reversed() { storage.remove(at: index) }
+            var updated = list
+            let moving = source.map { updated[$0] }
+            for index in source.reversed() { updated.remove(at: index) }
             let target = destination - source.count(in: 0..<destination)
-            storage.insert(contentsOf: moving, at: target)
-            try save()
+            updated.insert(contentsOf: moving, at: target)
+            try commit(updated)
         }
     }
 
     /// Adds accounts whose names are not taken yet; returns how many were added.
     public func importAccounts(_ entries: [(name: String, url: String)]) throws -> Int {
         try lock.withLock {
-            var added = 0
-            for entry in entries where !storage.contains(where: { $0.name == entry.name }) {
-                storage.append(Account(name: entry.name, url: entry.url))
-                added += 1
+            var updated = list
+            for entry in entries where !updated.contains(where: { $0.name == entry.name }) {
+                updated.append(Account(name: entry.name, url: entry.url))
             }
-            if added > 0 { try save() }
+            let added = updated.count - list.count
+            if added > 0 { try commit(updated) }
             return added
         }
     }
 
     public func replaceAll(with accounts: [Account]) throws {
         try lock.withLock {
-            storage = accounts
-            try save()
+            try commit(accounts)
         }
     }
 
@@ -170,23 +204,23 @@ public final class AccountStore: @unchecked Sendable {
 
     // Must be called with the lock held.
     private func indexOf(_ id: UUID) throws -> Int {
-        guard let index = storage.firstIndex(where: { $0.id == id }) else { throw AccountStoreError.notFound }
+        guard let index = list.firstIndex(where: { $0.id == id }) else { throw AccountStoreError.notFound }
         return index
     }
 
     // Must be called with the lock held.
     private func validate(name: String, excluding id: UUID?) throws {
         guard !name.isEmpty else { throw AccountStoreError.emptyName }
-        if storage.contains(where: { $0.name == name && $0.id != id }) {
+        if list.contains(where: { $0.name == name && $0.id != id }) {
             throw AccountStoreError.duplicateName(name)
         }
     }
 
-    // Must be called with the lock held.
-    private func save() throws {
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-        try FileStorage.writeProtected(try encoder.encode(storage), to: fileURL)
+    // Must be called with the lock held. Saves before changing the list, so that after a failed
+    // save the menu, hotkeys and HTTP API still show what is stored.
+    private func commit(_ accounts: [Account]) throws {
+        try storage.save(accounts)
+        list = accounts
     }
 }
 
