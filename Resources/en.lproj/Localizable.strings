@@ -144,3 +144,15 @@
 "数据来自更新版本的 GoldenPassport（数据格式 %lld），请升级后再打开。" = "The data comes from a newer version of GoldenPassport (data format %lld). Update GoldenPassport, then open it again.";
 "钥匙串操作失败（错误 %@）。" = "The keychain operation failed (error %@).";
 "写入钥匙串的账号和原来的不一致，迁移没有完成，原来的数据文件没有改动。" = "The accounts read back from the keychain differ from the ones written, so the migration was not completed. The original data file is unchanged.";
+"没有完成" = "Not completed";
+"无法读取钥匙串里的账号" = "Can't read the accounts in the keychain";
+"GoldenPassport 没有改动任何数据。" = "GoldenPassport has not changed any data.";
+"点「重试」后，在系统的授权框里选择「始终允许」。" = "Click Retry, then choose Always Allow when macOS asks.";
+"可以在「钥匙串访问」里解锁「登录」钥匙串，然后点「重试」。" = "Unlock the login keychain in Keychain Access, then click Retry.";
+"钥匙串里找不到账号数据" = "The accounts are missing from the keychain";
+"数据目录里的 accounts-v2.json 表明账号存放在钥匙串里，但这个条目已经不在了：可能在「钥匙串访问」里被删除了，也可能只把数据目录拷到了这台 Mac。" = "accounts-v2.json in the data folder says the accounts are in the keychain, but the keychain item is gone. It may have been deleted in Keychain Access, or only the data folder was copied to this Mac.";
+"可以从 %@ 重新迁移。注意：那是迁移到钥匙串之前的数据，之后新增、修改或删除的账号都不在里面。如果你有更新的导出文件，迁移后可以再导入它。" = "You can migrate again from %@. Note that it holds the accounts as they were before they moved to the keychain: accounts added, changed or deleted since then are not in it. If you have a newer export, import it afterwards.";
+"从 %@ 重新迁移" = "Migrate Again from %@";
+"数据目录里没有可以重新迁移的旧文件。可以从空列表开始，再导入你导出的 .secrets 文件；也可以先退出，从备份恢复钥匙串。" = "The data folder has no older file to migrate from. You can start with an empty list and import a .secrets file you exported, or quit and restore the keychain from a backup.";
+"从空列表开始" = "Start with an Empty List";
+"重试" = "Retry";

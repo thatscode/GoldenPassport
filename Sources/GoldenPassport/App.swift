@@ -40,12 +40,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.mainMenu = makeMainMenu()
 
         let environment = AppEnvironment.fromBundle()
-        let store: AccountStore
-        do {
-            try environment.prepareDataDirectory()
-            store = try environment.openAccountStore()
-        } catch {
-            showStartupFailure(error, dataDirectory: environment.dataDirectory)
+        guard let store = openAccountStore(environment) else {
             NSApp.terminate(nil)
             return
         }
@@ -54,6 +49,96 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             settings: SettingsStore(directory: environment.dataDirectory, defaults: environment.defaults),
             dataDirectory: environment.dataDirectory,
             dataFormat: environment.dataFormat)
+    }
+
+    /// Prepares the data directory and opens the accounts. When the Keychain can't be read,
+    /// says why and lets the user retry or, if the item is gone, choose how to start again
+    /// (docs/design/d3-keychain.md 5.5). nil means quit; no data was changed.
+    private func openAccountStore(_ environment: AppEnvironment) -> AccountStore? {
+        while true {
+            do {
+                try environment.prepareDataDirectory()
+                return try environment.openAccountStore()
+            } catch let error as KeychainError {
+                switch askAfterKeychainFailure(error, environment: environment) {
+                case .retry:
+                    continue
+                case .remigrate:
+                    perform { try environment.remigrate() }
+                case .startEmpty:
+                    perform { try environment.startWithNoAccounts() }
+                case .quit:
+                    return nil
+                }
+            } catch {
+                showStartupFailure(error, dataDirectory: environment.dataDirectory)
+                return nil
+            }
+        }
+    }
+
+    /// Runs a recovery the user chose; if it fails, says so, and the next attempt to open
+    /// the accounts shows where things stand.
+    private func perform(_ recovery: () throws -> Void) {
+        do {
+            try recovery()
+        } catch {
+            showAlert(String(localized: "没有完成"), informative: error.localizedDescription, style: .warning)
+        }
+    }
+
+    private enum KeychainRecovery {
+        case retry, remigrate, startEmpty, quit
+    }
+
+    private func askAfterKeychainFailure(_ error: KeychainError, environment: AppEnvironment) -> KeychainRecovery {
+        let alert = NSAlert()
+        alert.alertStyle = .critical
+        alert.messageText = String(localized: "无法读取钥匙串里的账号")
+        let unchanged = String(localized: "GoldenPassport 没有改动任何数据。")
+        var actions: [KeychainRecovery] = []
+        switch error {
+        case .denied:
+            alert.informativeText = error.localizedDescription + "\n\n"
+                + String(localized: "点「重试」后，在系统的授权框里选择「始终允许」。") + "\n\n" + unchanged
+            alert.addButton(withTitle: String(localized: "重试"))
+            actions.append(.retry)
+        case .locked:
+            alert.informativeText = error.localizedDescription + "\n\n"
+                + String(localized: "可以在「钥匙串访问」里解锁「登录」钥匙串，然后点「重试」。") + "\n\n" + unchanged
+            alert.addButton(withTitle: String(localized: "重试"))
+            actions.append(.retry)
+        case .missing:
+            alert.messageText = String(localized: "钥匙串里找不到账号数据")
+            let explanation = String(localized: "数据目录里的 accounts-v2.json 表明账号存放在钥匙串里，但这个条目已经不在了：可能在「钥匙串访问」里被删除了，也可能只把数据目录拷到了这台 Mac。")
+            if let source = environment.remigrationSource {
+                alert.informativeText = explanation + "\n\n"
+                    + String(localized: "可以从 \(source) 重新迁移。注意：那是迁移到钥匙串之前的数据，之后新增、修改或删除的账号都不在里面。如果你有更新的导出文件，迁移后可以再导入它。") + "\n\n" + unchanged
+                alert.addButton(withTitle: String(localized: "从 \(source) 重新迁移"))
+                actions.append(.remigrate)
+            } else {
+                alert.informativeText = explanation + "\n\n"
+                    + String(localized: "数据目录里没有可以重新迁移的旧文件。可以从空列表开始，再导入你导出的 .secrets 文件；也可以先退出，从备份恢复钥匙串。") + "\n\n" + unchanged
+                alert.addButton(withTitle: String(localized: "从空列表开始"))
+                actions.append(.startEmpty)
+            }
+        case .unreadable, .newerFormat:
+            alert.informativeText = error.localizedDescription + "\n\n" + unchanged
+        case .notVerified, .failed:
+            alert.informativeText = error.localizedDescription + "\n\n" + unchanged
+            alert.addButton(withTitle: String(localized: "重试"))
+            actions.append(.retry)
+        }
+        alert.addButton(withTitle: String(localized: "查看帮助"))
+        alert.addButton(withTitle: String(localized: "退出"))
+        activateApp()
+        let response = alert.runModal().rawValue - NSApplication.ModalResponse.alertFirstButtonReturn.rawValue
+        if response < actions.count { return actions[response] }
+        if response == actions.count {
+            NSWorkspace.shared.open(readmeURL(section: (english: "if-goldenpassport-cant-read-its-data",
+                                                        chinese: "goldenpassport-无法读取数据时")))
+        }
+        return .quit
     }
 
     /// For an unreadable data file, says that the file was left untouched and points to the recovery steps.

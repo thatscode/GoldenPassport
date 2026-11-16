@@ -246,6 +246,26 @@ struct KeychainMigrationTests {
         #expect(LegacyChanges.detect(in: dir, accounts: store.accounts) == nil, "nothing left to offer")
     }
 
+    @Test func startingOverWithNoAccountsNeedsTheItemToBeGone() throws {
+        let dir = try makeTempDirectory()
+        try writeAccountsFile([Account(name: "a", url: validURL)], in: dir)
+        let keychain = MemoryKeychain()
+        let env = environment(dir, keychain)
+        try env.prepareDataDirectory()
+
+        try env.startWithNoAccounts()
+        #expect(try env.openAccountStore().accounts.map(\.name) == ["a"], "an item that is there stays")
+
+        keychain.memoryItem(KeychainAccountStorage.itemAccount).data = nil
+        try FileManager.default.removeItem(at: file(dir, AccountStore.fileName))   // cleaned up earlier
+        #expect(env.remigrationSource == nil)
+        #expect(throws: KeychainError.missing) { try env.openAccountStore() }
+        #expect(try AccountsMarker.load(from: dir)?.migratedFrom == AccountStore.fileName)
+        try env.startWithNoAccounts()
+        #expect(try env.openAccountStore().accounts.isEmpty)
+        #expect(try AccountsMarker.load(from: dir)?.migratedFrom == nil)
+    }
+
     @Test func remigrateNeverReplacesAnItemThatIsThere() throws {
         let dir = try makeTempDirectory()
         try writeAccountsFile([Account(name: "old", url: validURL)], in: dir)

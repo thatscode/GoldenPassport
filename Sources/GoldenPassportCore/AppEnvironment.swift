@@ -189,6 +189,16 @@ public struct AppEnvironment: Sendable {
         }
     }
 
+    /// Starts over with no accounts after the Keychain item went missing and there is no
+    /// data file to migrate from, only when the user chose to (so they can import a backup).
+    /// Never replaces an item that is there.
+    public func startWithNoAccounts() throws {
+        guard let storage = keychainStorage, try storage.item.read() == nil else { return }
+        try storage.save([])
+        // Nothing was migrated into this list.
+        try AccountsMarker(service: storage.service, migratedFrom: nil).write(to: dataDirectory)
+    }
+
     /// Migrates again from `remigrationSource`, only when the user chose to after the
     /// Keychain item went missing. Never replaces an item that is there.
     public func remigrate() throws {
