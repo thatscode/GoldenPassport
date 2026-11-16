@@ -96,12 +96,15 @@ public struct UpdateChecker: Sendable {
     public static let latestReleaseURL = URL(string: "https://api.github.com/repos/thatscode/GoldenPassport/releases/latest")!
 
     private let currentVersion: AppVersion
+    /// The data format this build stores accounts in (`AppEnvironment.dataFormat`).
+    private let dataFormat: Int
     private let latestReleaseURL: URL
     private let fetch: Fetch
 
-    public init(currentVersion: AppVersion, latestReleaseURL: URL = UpdateChecker.latestReleaseURL,
-                fetch: @escaping Fetch) {
+    public init(currentVersion: AppVersion, dataFormat: Int = AccountStore.dataFormat,
+                latestReleaseURL: URL = UpdateChecker.latestReleaseURL, fetch: @escaping Fetch) {
         self.currentVersion = currentVersion
+        self.dataFormat = dataFormat
         self.latestReleaseURL = latestReleaseURL
         self.fetch = fetch
     }
@@ -133,7 +136,7 @@ public struct UpdateChecker: Sendable {
     private func notices(for compatibility: ReleaseCompatibility?, of release: GitHubRelease) -> [AvailableUpdate.Notice] {
         guard let compatibility, let dataFormat = compatibility.dataFormat else { return [.compatibilityUnknown] }
         var notices: [AvailableUpdate.Notice] = []
-        if dataFormat > AccountStore.dataFormat {
+        if dataFormat > self.dataFormat {
             notices.append(.dataFormatChange)
         }
         if let text = compatibility.minUpgradeFrom {

@@ -143,3 +143,4 @@
 "钥匙串里的账号数据无法识别。" = "The account data in the keychain can't be read.";
 "数据来自更新版本的 GoldenPassport（数据格式 %lld），请升级后再打开。" = "The data comes from a newer version of GoldenPassport (data format %lld). Update GoldenPassport, then open it again.";
 "钥匙串操作失败（错误 %@）。" = "The keychain operation failed (error %@).";
+"写入钥匙串的账号和原来的不一致，迁移没有完成，原来的数据文件没有改动。" = "The accounts read back from the keychain differ from the ones written, so the migration was not completed. The original data file is unchanged.";

@@ -39,6 +39,40 @@ final class MemoryItem: SecretItem, @unchecked Sendable {
     }
 }
 
+/// The items of one service, kept in memory. Asking twice for an account gives the same item.
+final class MemoryKeychain: SecretItems, @unchecked Sendable {
+    private let lock = NSLock()
+    private var stored: [String: MemoryItem]
+
+    init(_ items: [String: MemoryItem] = [:]) {
+        stored = items
+    }
+
+    /// Accounts that have an item with data, sorted.
+    var accounts: [String] {
+        lock.withLock { stored.filter { $0.value.data != nil }.keys.sorted() }
+    }
+
+    func item(_ account: String) -> any SecretItem {
+        memoryItem(account)
+    }
+
+    func memoryItem(_ account: String) -> MemoryItem {
+        lock.withLock {
+            if let item = stored[account] { return item }
+            let item = MemoryItem()
+            stored[account] = item
+            return item
+        }
+    }
+}
+
+extension KeychainAccountStorage {
+    init(item: MemoryItem, service: String, directory: URL) {
+        self.init(items: MemoryKeychain([Self.itemAccount: item]), service: service, directory: directory)
+    }
+}
+
 private let service = "site.stanzhai.GoldenPassport.tests"
 
 private func markerURL(in dir: URL) -> URL {

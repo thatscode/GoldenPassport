@@ -43,7 +43,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let store: AccountStore
         do {
             try environment.prepareDataDirectory()
-            store = try AccountStore(directory: environment.dataDirectory)
+            store = try environment.openAccountStore()
         } catch {
             showStartupFailure(error, dataDirectory: environment.dataDirectory)
             NSApp.terminate(nil)
@@ -52,7 +52,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         statusMenuController = StatusMenuController(
             store: store,
             settings: SettingsStore(directory: environment.dataDirectory, defaults: environment.defaults),
-            dataDirectory: environment.dataDirectory)
+            dataDirectory: environment.dataDirectory,
+            dataFormat: environment.dataFormat)
     }
 
     /// For an unreadable data file, says that the file was left untouched and points to the recovery steps.

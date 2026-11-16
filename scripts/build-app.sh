@@ -5,6 +5,11 @@
 # ARCHS="arm64 x86_64" builds a universal binary (default: arm64).
 # PRERELEASE=beta.3 marks a pre-release: the app then reports 0.2.0-beta.3, so its update
 # check offers 0.2.0 itself (Info.plist GPPrerelease; CFBundleShortVersionString stays 0.2.0).
+# SIGN_IDENTITY="Developer ID Application: …" signs with that identity; the default "-" signs ad hoc.
+# KEYCHAIN=1 keeps the accounts in the login Keychain (Info.plist GPKeychainService, data format 2,
+# docs/design/d3-keychain.md), KEYCHAIN=0 in accounts.json. The default is 1 only with a signing
+# identity: macOS treats every ad-hoc build as a new app and would ask for Keychain access after
+# each update.
 set -euo pipefail
 
 VARIANT="${1:-dev}"
@@ -12,6 +17,8 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 BUILD_ROOT="${BUILD_ROOT:-$HOME/Library/Caches/GoldenPassport-build}"
 ARCHS="${ARCHS:-arm64}"
 PRERELEASE="${PRERELEASE:-}"
+SIGN_IDENTITY="${SIGN_IDENTITY:--}"
+if [ "$SIGN_IDENTITY" = "-" ]; then KEYCHAIN="${KEYCHAIN:-0}"; else KEYCHAIN="${KEYCHAIN:-1}"; fi
 VERSION="$(cat "$ROOT/VERSION")"
 BUILD_NUMBER="$(git -C "$ROOT" rev-list --count HEAD 2>/dev/null || echo 1)"
 
@@ -88,10 +95,17 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 </plist>
 PLIST
 [ -z "$PRERELEASE" ] || /usr/libexec/PlistBuddy -c "Add :GPPrerelease string $PRERELEASE" "$APP/Contents/Info.plist"
+# The Dev build keeps its own Keychain item, as it keeps its own data folder.
+[ "$KEYCHAIN" != 1 ] || /usr/libexec/PlistBuddy -c "Add :GPKeychainService string $BUNDLE_ID" "$APP/Contents/Info.plist"
 
 xattr -cr "$APP"
-codesign --force --options runtime --timestamp=none --sign - "$APP"
+if [ "$SIGN_IDENTITY" = "-" ]; then
+  codesign --force --options runtime --timestamp=none --sign - "$APP"
+else
+  codesign --force --options runtime --timestamp --sign "$SIGN_IDENTITY" "$APP"
+fi
 codesign --verify --strict "$APP"
 
 echo "Built $APP"
 echo "  archs: $(lipo -archs "$APP/Contents/MacOS/$EXECUTABLE")  version: $VERSION${PRERELEASE:+-$PRERELEASE} ($BUILD_NUMBER)  bundle id: $BUNDLE_ID"
+echo "  accounts: $([ "$KEYCHAIN" = 1 ] && echo "login Keychain ($BUNDLE_ID)" || echo accounts.json)  signed: $([ "$SIGN_IDENTITY" = - ] && echo ad hoc || echo "$SIGN_IDENTITY")"

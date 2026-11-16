@@ -10,6 +10,20 @@ protocol SecretItem: Sendable {
     func write(_ data: Data) throws
 }
 
+/// The items of one Keychain service, by their account attribute.
+protocol SecretItems: Sendable {
+    func item(_ account: String) -> any SecretItem
+}
+
+/// The login Keychain's generic-password items of `service`.
+struct LoginKeychain: SecretItems {
+    let service: String
+
+    func item(_ account: String) -> any SecretItem {
+        LoginKeychainItem(service: service, account: account, label: "GoldenPassport")
+    }
+}
+
 /// Why the accounts in the Keychain can't be used. Startup stops on any of these without
 /// writing anything (docs/design/d3-keychain.md 5.5).
 public enum KeychainError: Error, Equatable, LocalizedError {
@@ -23,6 +37,8 @@ public enum KeychainError: Error, Equatable, LocalizedError {
     case unreadable
     /// Written by a newer version of GoldenPassport.
     case newerFormat(Int)
+    /// What a migration read back from the Keychain differs from what it wrote.
+    case notVerified
     case failed(OSStatus)
 
     init(status: OSStatus) {
@@ -45,6 +61,8 @@ public enum KeychainError: Error, Equatable, LocalizedError {
             return String(localized: "钥匙串里的账号数据无法识别。")
         case .newerFormat(let version):
             return String(localized: "数据来自更新版本的 GoldenPassport（数据格式 \(version)），请升级后再打开。")
+        case .notVerified:
+            return String(localized: "写入钥匙串的账号和原来的不一致，迁移没有完成，原来的数据文件没有改动。")
         case .failed(let status):
             return String(localized: "钥匙串操作失败（错误 \(String(status))）。")
         }
@@ -175,19 +193,20 @@ struct KeychainAccountStorage: AccountStorage {
     /// The Keychain item's account attribute; the service comes from Info.plist.
     static let itemAccount = "accounts"
 
-    let item: any SecretItem
+    let items: any SecretItems
     let service: String
     let directory: URL
 
-    init(item: any SecretItem, service: String, directory: URL) {
-        self.item = item
+    var item: any SecretItem { items.item(Self.itemAccount) }
+
+    init(items: any SecretItems, service: String, directory: URL) {
+        self.items = items
         self.service = service
         self.directory = directory
     }
 
     init(service: String, directory: URL) {
-        self.init(item: LoginKeychainItem(service: service, account: Self.itemAccount, label: "GoldenPassport"),
-                  service: service, directory: directory)
+        self.init(items: LoginKeychain(service: service), service: service, directory: directory)
     }
 
     func load() throws -> [Account] {
@@ -205,6 +224,31 @@ struct KeychainAccountStorage: AccountStorage {
         if try AccountsMarker.load(from: directory) == nil {
             try AccountsMarker(service: service, migratedFrom: nil).write(to: directory)
         }
+    }
+
+    /// Moves `accounts`, read from the data file `source`, into the Keychain (design 5.2):
+    /// keeps an item already there as `accounts.replaced-<time>`, writes the list, reads it
+    /// back and compares, and only then writes the marker. If anything fails there is no new
+    /// marker, so the next launch migrates again; the data file is never touched.
+    func migrate(_ accounts: [Account], from source: String) throws {
+        if let existing = try item.read() {
+            try items.item("\(Self.itemAccount).replaced-\(FileStorage.timestamp())").write(existing)
+        }
+        try item.write(Self.encode(accounts))
+        guard let stored = try item.read(), (try? Self.decode(stored)) == accounts else {
+            throw KeychainError.notVerified
+        }
+        try AccountsMarker(service: service, migratedFrom: source).write(to: directory)
+    }
+
+    /// On a fresh data directory, an item left by an earlier installation (say, after the data
+    /// directory was deleted) is used rather than replaced: writes a marker for it once it reads.
+    /// Returns whether there was one.
+    func adoptExistingItem() throws -> Bool {
+        guard let data = try item.read() else { return false }
+        _ = try Self.decode(data)
+        try AccountsMarker(service: service, migratedFrom: nil).write(to: directory)
+        return true
     }
 
     private struct Payload: Codable {

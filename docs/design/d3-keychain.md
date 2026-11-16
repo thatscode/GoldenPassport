@@ -1,6 +1,6 @@
 # D3 设计：把密钥存进钥匙串
 
-对应 [兼容策略](../compatibility.md) 第 3.2、3.3 节。状态：草案，第 7 节的决策待确认。
+对应 [兼容策略](../compatibility.md) 第 3.2、3.3 节。状态：第 7 节的决策已确认（2026-11-17，都按推荐），正在实施。
 
 钥匙串部分等 Developer ID 账号到位后发布（原因见第 4 节）。第 8 节的第 1、2 步（存储抽象、钥匙串后端）不依赖账号，已经先做了。
 
@@ -67,7 +67,7 @@
 1. **有 `accounts-v2.json`**：从钥匙串读取。读不出来（条目不存在、授权被拒绝、钥匙串锁着、内容读不懂、`formatVersion` 比程序支持的高）时停下并提示，不改动任何数据（5.5）。
 2. **没有标记文件，有 `accounts.json`**（内测版用户）：从格式 1 迁移。
 3. **没有标记文件和 `accounts.json`，有 `gp.secrets`**（0.1.x 用户）：直接从格式 0 迁移，照常记录 I6 基线。
-4. **什么都没有**：全新安装，第一次保存时创建钥匙串条目和标记文件。
+4. **什么都没有**：全新安装，第一次保存时创建钥匙串条目和标记文件。如果钥匙串里已经有这个条目（例如删掉数据目录后重新安装），直接沿用它，并写入标记文件；条目读不懂时停下，不覆盖它。
 
 迁移的写入顺序：先写钥匙串条目，读回来逐条核对，再写标记文件。中途失败时没有标记文件，下次启动会重新迁移，旧文件始终没被改动。
 
@@ -83,7 +83,7 @@
 
 ### 5.4 `MigrationCheck` 和脚本
 
-- **`MigrationCheck`**（`--migrate-data`）：迁移来源可能是 `gp.secrets` 或 `accounts.json`，报告里加 `source=`。核对规则不变：每个名称和 URL 都要一致。它要读钥匙串，用的是同一个 Developer ID 签名的程序，不会弹框。
+- **`MigrationCheck`**（`--migrate-data`）：迁移来源可能是 `gp.secrets` 或 `accounts.json`，报告里加 `storage=`（`keychain` 或 `file`）和 `source=`；`accounts.json` 里有、钥匙串里没有的账号（按 URL 比较）每个输出一行 `file_only=`，供 `cleanup.sh` 使用。核对规则不变：每个名称和 URL 都要一致。它要读钥匙串，用的是同一个 Developer ID 签名的程序，不会弹框。
 - **`install.sh`**：流程不变。安装备份里**没有**钥匙串条目，它不在数据目录里。核对失败时恢复旧 App 和数据目录，迁移时写入的条目留在钥匙串里，下次迁移时按 5.2 另存。
 - **`rollback.sh`**：回退到格式 1 或 0 的版本时提醒，旧版本看到的是升级那一刻的数据；在新版里改过的账号存在钥匙串里，旧版本看不到，需要的话回退前先导出（I5）。
 - **`cleanup.sh`**：见 5.3。删除 `accounts.json` 前，列出其中有、钥匙串里没有的账号（按 URL 指纹比较），提醒清理后无法找回（决策 4）。
@@ -117,7 +117,7 @@ README 的「GoldenPassport 无法读取数据时」一节相应补充。
 | 在 ad-hoc 签名的内测包里先上钥匙串 | 每次更新都会弹授权框（第 4 节） |
 | 数据保护钥匙串（`kSecUseDataProtectionKeychain`） | 需要受限的签名权限（entitlement）和描述文件，用借来的账号配置更麻烦。账号到位后可以再评估 |
 
-## 7. 决策（待确认）
+## 7. 决策（2026-11-17 确认，都按推荐）
 
 | # | 问题 | 推荐 | 备选 |
 |---|---|---|---|
@@ -133,10 +133,10 @@ README 的「GoldenPassport 无法读取数据时」一节相应补充。
 
 1. **存储抽象**（约半天）：`AccountStorage` 和 `AccountsFile`，保存失败时内存保持不变，测试用内存里的实现。用户看不到任何变化。**已完成**，见第 11 节。
 2. **钥匙串后端和标记文件**，以及它们的单元测试（约 1.5 天）。代码还没有接到 App 里，用户看不到任何变化。**已完成**，见第 11 节。
+3. **迁移 0 → 2、1 → 2**，`MigrationCheck` 报告来源并核对（约 1 天）。只有设置了 `GPKeychainService` 的构建才会迁移，ad-hoc 签名的构建默认不设。**已完成**，见第 11 节。
 
 代码也可以先写，但要等 Developer ID 账号（C1 之后）才能验证和发布：
 
-3. 迁移 0 → 2、1 → 2，`MigrationCheck` 报告来源并核对（约 1 天）。
 4. 读不出来时的提示和重新迁移（约 0.5 天）。
 5. 三个脚本、README、安装说明、CHANGELOG 和兼容策略（约 1 天）。
 6. 用 Developer ID 签名的探针测试首次授权、更新后不弹框、拒绝授权、条目被删，然后发 beta.4 给内测同事（约 1 天）。
@@ -179,3 +179,12 @@ README 的「GoldenPassport 无法读取数据时」一节相应补充。
   - `AccountsMarker`：标记文件的读写，权限 `0600`。版本更高时报「来自更新版本」，内容读不懂或 `storage` 不是 `keychain` 时报无法读取，都不会因此重新迁移。
   - 新增 11 个测试（参数化展开后 16 个）：全新安装、重新打开、标记文件里没有密钥和名称（第 9 节第 7 条）、条目丢失、四种无法使用的内容、读取被拒绝或锁着、保存被拒绝（第 9 节第 6 条）、标记文件版本更高或损坏、返回码归类。另有 2 个读写真实登录钥匙串的测试（共 94 个，这 2 个默认跳过），在本机用 `GP_KEYCHAIN_TESTS=1` 运行通过，没有弹框，跑完不留条目。
   - 还没做：Info.plist 的 `GPKeychainService`、`AppEnvironment` 选择存储和迁移（第 3 步）。
+- 2026-11-17，第 8 节第 3 步：
+  - `AppEnvironment.keychainService` 来自 Info.plist 的 `GPKeychainService`。`build-app.sh` 新增 `SIGN_IDENTITY`（默认 `-`，即 ad-hoc）和 `KEYCHAIN`：用真实证书签名时默认 `KEYCHAIN=1`，写入 `GPKeychainService`（正式版 `site.stanzhai.GoldenPassport`，开发版 `site.stanzhai.GoldenPassport.dev`）；ad-hoc 签名默认 `KEYCHAIN=0`，照常用 `accounts.json`。所以现在的内测包和 CI 构建行为不变。
+  - `prepareDataDirectory` 按 5.2 迁移：先看标记文件；没有时依次从 `accounts.json`、`gp.secrets` 迁移，都没有就沿用钥匙串里已有的条目。从 `gp.secrets` 迁移时照常记录 I6 基线、继承 0.1.x 的设置。迁移先把已有条目另存为 `accounts.replaced-<时间>`，写入后读回逐条比较（包括 id），一致才写标记文件；任何一步失败都不写标记文件，旧文件不变。
+  - 不用钥匙串的构建（格式 1）看到标记文件时停下，报「数据来自更新版本（数据格式 2）」，不会从 `gp.secrets` 再生成一份 `accounts.json`。
+  - `openAccountStore()` 按构建选择存储；`dataFormat` 随之是 1 或 2，「检查更新」用它判断新版本是否转换数据格式。
+  - `remigrationSource` 和 `remigrate()` 是给第 4 步的：条目不见了时，由用户选择从 `accounts.json`（没有则 `gp.secrets`）重新迁移；条目还在时什么也不做。从 `gp.secrets` 重新迁移后重新记录基线，以免把已经导入的账号再提示一遍。
+  - `MigrationCheck` 报告加 `storage=`、`source=` 和 `file_only=`（决策 4）。
+  - 新增 18 个测试。先故意去掉读回比较和格式 1 构建的标记文件检查，确认相应测试会失败（`MigrationCheck` 自己的比较也报出了不一致的账号）。
+  - 用真实二进制在本机验证：release 构建加 `KEYCHAIN=1`，把 `GPKeychainService` 改成探针专用的 service，数据目录放两个假账号的 `gp.secrets`。`--migrate-data` 第一次报告 `status=migrated`、`source=gp.secrets`、`consistent=true`，第二次报告 `already-migrated`；数据目录里没有 `accounts.json`，没有弹框。

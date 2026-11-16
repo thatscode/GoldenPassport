@@ -245,10 +245,14 @@ enum FileStorage {
     /// Where a file that can't be read is moved to instead of being overwritten:
     /// `<name>.unreadable-<time>` next to it.
     static func keptCopy(of url: URL) -> URL {
+        url.deletingLastPathComponent().appendingPathComponent("\(url.lastPathComponent).unreadable-\(timestamp())")
+    }
+
+    /// `yyyyMMdd-HHmmss` in local time, for names of kept copies.
+    static func timestamp(_ date: Date = Date()) -> String {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.dateFormat = "yyyyMMdd-HHmmss"
-        return url.deletingLastPathComponent()
-            .appendingPathComponent("\(url.lastPathComponent).unreadable-\(formatter.string(from: Date()))")
+        return formatter.string(from: date)
     }
 }

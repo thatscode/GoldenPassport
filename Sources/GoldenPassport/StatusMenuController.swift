@@ -60,14 +60,14 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         self?.acknowledgeLegacyChanges()
     })
 
-    init(store: AccountStore, settings: SettingsStore, dataDirectory: URL) {
+    init(store: AccountStore, settings: SettingsStore, dataDirectory: URL, dataFormat: Int) {
         self.store = store
         self.settings = settings
         self.dataDirectory = dataDirectory
         hotkeys = HotkeyMonitor(store: store)
         let version = AppVersion(bundleInfo: Bundle.main.infoDictionary ?? [:]) ?? AppVersion("0")!
         appVersion = version.description
-        updateChecker = UpdateChecker(currentVersion: version,
+        updateChecker = UpdateChecker(currentVersion: version, dataFormat: dataFormat,
                                       fetch: UpdateChecker.networkFetch(appVersion: appVersion))
         super.init()
 
