@@ -137,3 +137,9 @@
 "忽略" = "Ignore";
 "以后不会再提示这些改动。它们仍保存在 gp.secrets 里，但运行 cleanup.sh 清理之后就无法再导入了。" = "You won't be asked about them again. They remain in gp.secrets, but can no longer be imported once cleanup.sh has deleted that file.";
 "处理旧版本的改动（%lld）…" = "Review Changes from 0.1.x (%lld)…";
+"钥匙串里找不到 GoldenPassport 的账号数据。" = "GoldenPassport's accounts are missing from the keychain.";
+"没有获得读取钥匙串的授权。" = "Access to the keychain was denied.";
+"钥匙串已锁定，请先解锁。" = "The keychain is locked. Unlock it first.";
+"钥匙串里的账号数据无法识别。" = "The account data in the keychain can't be read.";
+"数据来自更新版本的 GoldenPassport（数据格式 %lld），请升级后再打开。" = "The data comes from a newer version of GoldenPassport (data format %lld). Update GoldenPassport, then open it again.";
+"钥匙串操作失败（错误 %@）。" = "The keychain operation failed (error %@).";

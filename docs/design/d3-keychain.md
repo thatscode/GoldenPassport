@@ -2,7 +2,7 @@
 
 对应 [兼容策略](../compatibility.md) 第 3.2、3.3 节。状态：草案，第 7 节的决策待确认。
 
-钥匙串部分等 Developer ID 账号到位后实施（原因见第 4 节）。第 8 节的第 1 步（存储抽象）不依赖账号，可以先做。
+钥匙串部分等 Developer ID 账号到位后发布（原因见第 4 节）。第 8 节的第 1、2 步（存储抽象、钥匙串后端）不依赖账号，已经先做了。
 
 ## 1. 问题
 
@@ -56,7 +56,7 @@
 - 内容：`{"formatVersion": 2, "accounts": [{"id": …, "name": …, "url": …}]}`，与 3.2 第 1 条的格式一致。`url` 仍然原样保存 otpauth URL，导出保持无损。
 - 只存本机，不同步到 iCloud。
 
-数据目录里另写一个**不含密钥**的标记文件 `accounts-v2.json`：`{"formatVersion": 2, "storage": "keychain", "service": "…", "migratedFrom": "gp.secrets" | "accounts.json" | null, "migratedAt": "…"}`。它的作用：
+数据目录里另写一个**不含密钥**的标记文件 `accounts-v2.json`：`{"formatVersion": 2, "storage": "keychain", "service": "…", "migratedFrom": "gp.secrets" | "accounts.json", "migratedAt": "…"}`。全新安装没有 `migratedFrom` 这个键（不写 `null`：脚本用 `plutil -extract … raw` 读取时，`null` 和没有这个键一样会失败，只保留一种写法）。`migratedAt` 是写入标记文件的时间。它的作用：
 
 - 表示已经迁移到格式 2。按 3.2 第 3 条，新文件存在就不再迁移；
 - 脚本不用读钥匙串就能知道数据在哪里（`rollback.sh`、`cleanup.sh`）；
@@ -132,10 +132,10 @@ README 的「GoldenPassport 无法读取数据时」一节相应补充。
 不需要账号，现在可以做：
 
 1. **存储抽象**（约半天）：`AccountStorage` 和 `AccountsFile`，保存失败时内存保持不变，测试用内存里的实现。用户看不到任何变化。**已完成**，见第 11 节。
+2. **钥匙串后端和标记文件**，以及它们的单元测试（约 1.5 天）。代码还没有接到 App 里，用户看不到任何变化。**已完成**，见第 11 节。
 
-需要 Developer ID 账号（C1 之后）：
+代码也可以先写，但要等 Developer ID 账号（C1 之后）才能验证和发布：
 
-2. 钥匙串后端和标记文件，以及它们的单元测试（约 1.5 天）。
 3. 迁移 0 → 2、1 → 2，`MigrationCheck` 报告来源并核对（约 1 天）。
 4. 读不出来时的提示和重新迁移（约 0.5 天）。
 5. 三个脚本、README、安装说明、CHANGELOG 和兼容策略（约 1 天）。
@@ -156,7 +156,7 @@ README 的「GoldenPassport 无法读取数据时」一节相应补充。
 7. 迁移后，数据目录里新写入的文件（标记文件）中找不到任何密钥或 URL。
 8. `--migrate-data` 的报告包含来源和核对结果。
 
-钥匙串后端的测试使用测试专用的 service。GitHub 的 runner 能不能访问钥匙串需要先确认，不能的话这部分只在本机跑，其余逻辑用内存实现测试。
+钥匙串后端的测试使用测试专用的 service。读写真实登录钥匙串的测试默认跳过，用 `GP_KEYCHAIN_TESTS=1 make test` 在本机运行：GitHub 的 runner 不一定有可用的登录钥匙串，开发者的 Mac 也不该在没要求时被写入条目。其余逻辑用内存里的条目测试，CI 照常运行。
 
 脚本测试沿用 I6 的做法，用 `GP_*` 环境变量指向临时目录：0.1.x 和内测版两条升级路径各走一遍「升级 → 回退 → 在旧版里改账号 → 再升级 → 清理」。
 
@@ -173,3 +173,9 @@ README 的「GoldenPassport 无法读取数据时」一节相应补充。
   - 每次修改都先保存，成功后才更新内存。以前保存失败时，没存下来的改动仍会出现在菜单、快捷键和 HTTP 接口里，直到下次启动才消失。
   - 新增 3 个测试：通过任意存储读写（用内存实现）；7 种修改在保存被拒绝时都保持原样；同一批导入里重名的只加第一个。最后这个测试是因为导入改成在副本上去重而补的，先用故意改错的实现确认它会失败。
   - 共 81 个测试通过；release 构建和测试构建都是 0 警告。
+- 2026-11-17，第 8 节第 2 步（按决策 2 的推荐，一个条目存整个列表）：
+  - `LoginKeychainItem`：登录钥匙串里的通用密码条目，用 `SecItem*` 读写，不用数据保护钥匙串，不同步到 iCloud。返回码归为四类：拒绝授权（`errSecUserCanceled`、`errSecAuthFailed`）、钥匙串锁着（`errSecInteractionNotAllowed`）、条目不存在（读取时返回空）、其他（带错误码）。
+  - `KeychainAccountStorage`：格式 2 的内容 `{"formatVersion": 2, "accounts": […]}`。读取时，条目不存在而标记文件存在就报「找不到」，不当作空列表；内容读不懂、`formatVersion` 更高、授权被拒绝、钥匙串锁着都报错，不写入任何东西。保存时先写条目，成功后才在没有标记文件时写入它。
+  - `AccountsMarker`：标记文件的读写，权限 `0600`。版本更高时报「来自更新版本」，内容读不懂或 `storage` 不是 `keychain` 时报无法读取，都不会因此重新迁移。
+  - 新增 11 个测试（参数化展开后 16 个）：全新安装、重新打开、标记文件里没有密钥和名称（第 9 节第 7 条）、条目丢失、四种无法使用的内容、读取被拒绝或锁着、保存被拒绝（第 9 节第 6 条）、标记文件版本更高或损坏、返回码归类。另有 2 个读写真实登录钥匙串的测试（共 94 个，这 2 个默认跳过），在本机用 `GP_KEYCHAIN_TESTS=1` 运行通过，没有弹框，跑完不留条目。
+  - 还没做：Info.plist 的 `GPKeychainService`、`AppEnvironment` 选择存储和迁移（第 3 步）。
