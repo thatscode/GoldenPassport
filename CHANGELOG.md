@@ -18,9 +18,9 @@ see [Installation](README.md#installation).
   code, the bundled google-toolbox-for-mac sources and the Swifter HTTP server are all gone.
 - TOTP is implemented with CryptoKit and honours `algorithm`, `digits` and `period` from the
   otpauth URL (SHA1 / SHA256 / SHA512, 6–8 digits), verified against the RFC 6238 test vectors.
-- Accounts are stored as an ordered list (`accounts.json`) instead of a dictionary whose order
-  changed on every launch.
-- Unit tests cover TOTP, URL parsing, storage, migration, the HTTP API, the update check and the
+- Accounts are stored as an ordered list instead of a dictionary whose order changed on every
+  launch: in the login Keychain in signed releases, in `accounts.json` in builds you make yourself.
+- Unit tests cover TOTP, URL parsing, storage (including the Keychain), migration, the HTTP API, the update check and the
   translations.
 
 ### New features
@@ -56,6 +56,11 @@ see [Installation](README.md#installation).
 
 ### Security & privacy
 
+- Signed releases keep your accounts in the **login Keychain** instead of a plaintext file. Other
+  apps can't read them without macOS asking you first, and copies of the data folder (installer
+  backups, sync tools, unencrypted Time Machine backups) no longer carry your secrets. Builds you
+  make yourself are ad-hoc signed, and macOS would ask for Keychain access after every update of
+  such a build, so they keep using `accounts.json` unless built with `KEYCHAIN=1`.
 - The HTTP API is off on new installs. It has no password, so while it runs anything running as
   you on this Mac can read every code. Upgrades from 0.1.x keep their previous setting.
 - GoldenPassport goes online only to check for updates, and only when you ask it to: choose
@@ -79,5 +84,5 @@ see [Installation](README.md#installation).
 | Default hotkeys | ⇧⌘0–9 (3/4/5 clash with screenshots) | **⌃⌥⌘0–9**; ⇧⌘ is still available in the menu |
 | Typing the code into the frontmost app | Accessibility permission | Still needs it, and it must be **granted again** after upgrading |
 | HTTP API at launch | On unless you turned it off | **Off on new installs**; upgrades keep the 0.1.x setting |
-| Data file | `gp.secrets` | `accounts.json` (migrated automatically on first launch; `gp.secrets` is kept but no longer updated) |
+| Where accounts are stored | `gp.secrets` | The login Keychain in signed releases, `accounts.json` in builds you make yourself. Migrated automatically on first launch; `gp.secrets` is kept but no longer updated |
 | Account order | Changed randomly between launches | Alphabetical after migration, then whatever order you set |

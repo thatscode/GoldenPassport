@@ -16,8 +16,9 @@
 >   done.
 
 GoldenPassport 0.2.0 is a ground-up rewrite for current macOS. It runs natively on Apple Silicon,
-also runs on Intel, and needs macOS 13 or later. When you upgrade from 0.1.x, your accounts are
-migrated automatically and the old data file is never modified, so you can roll back at any time.
+also runs on Intel, and needs macOS 13 or later. It keeps your accounts in your login Keychain
+instead of a plaintext file. When you upgrade from 0.1.x or a beta, your accounts are moved there
+automatically and the old data file is never modified, so you can roll back at any time.
 
 ## What's in this folder
 
@@ -26,7 +27,7 @@ migrated automatically and the old data file is never modified, so you can roll 
 | `GoldenPassport.app` | The app |
 | `install.sh` | Installs or upgrades, with a backup and a migration check |
 | `rollback.sh` | Puts back the app you had before |
-| `cleanup.sh` | Deletes the backups and the 0.1.x data files once you no longer need to roll back |
+| `cleanup.sh` | Deletes the backups and the old data files once you no longer need to roll back |
 | `INSTALL.md` / `安装说明.md` | These notes, in English and in Chinese |
 | `LICENSE` | MIT license |
 
@@ -38,19 +39,24 @@ migrated automatically and the old data file is never modified, so you can roll 
    1. checks the package and that your Mac and macOS version are supported;
    2. backs up the current app and data to `~/GoldenPassport-backups/<timestamp>/`;
    3. quits the running app and installs the new one to `/Applications`;
-   4. when upgrading from 0.1.x, migrates your accounts and checks every entry against
-      `gp.secrets`, printing account names only. **If anything doesn't match, it restores the
-      previous app and data automatically**;
+   4. moves your accounts into your login Keychain (from `gp.secrets` when upgrading from 0.1.x,
+      from `accounts.json` when upgrading from a beta) and checks every entry against that file,
+      printing account names only. **If anything doesn't match, it restores the previous app and
+      data automatically**;
    5. starts GoldenPassport.
 
 Use the same steps for a fresh install, an upgrade from 0.1.x and an upgrade from a 0.2.0 beta.
-Upgrading from a beta keeps your accounts as they are.
+Upgrading from a beta moves the accounts it has into the Keychain, so they stay as they are.
 
 You can also copy `GoldenPassport.app` to `/Applications` yourself. Your data is then migrated on
 first launch, but you get no backup and no migration check.
 
 ## After installing
 
+- **Where your accounts are**: in your login Keychain, in an item named **GoldenPassport** that
+  Keychain Access shows. It stays on this Mac and is not synced through iCloud. The data folder
+  no longer holds any secrets. If macOS asks whether GoldenPassport may use your keychain, choose
+  **Always Allow**.
 - **Language**: the interface follows the system language. To pick one, choose it under
   **Language / 语言** in the menu, then click **Restart Now**.
 - **Hotkeys** now default to ⌃⌥⌘0–9 (0.1.x used ⇧⌘0–9, whose 3/4/5 clash with the screenshot
@@ -75,14 +81,19 @@ app that was installed before; your data stays as it is.
 - **Back to 0.1.x**: your original `gp.secrets` was never modified, so 0.1.x finds all its
   accounts. Accounts you added or changed in 0.2.0 are not visible to 0.1.x. To keep them, export
   a `.secrets` backup from 0.2.0 first and import it into 0.1.x, then delete the export.
-- **Back to a 0.2.0 beta**: it reads the same `accounts.json`, so all your accounts stay as they
-  are.
+- **Back to a 0.2.0 beta**: betas keep the accounts in `accounts.json`, so the beta sees them as
+  they were when 0.2.0 moved them into the Keychain. To keep later changes, export a `.secrets`
+  backup from 0.2.0 first and import it into the beta. When you upgrade again, 0.2.0 keeps using
+  the Keychain; changes made in the beta are not carried over, and `cleanup.sh` lists them before
+  it deletes `accounts.json`.
 - **Further back**: without arguments, `rollback.sh` uses the newest backup, which is the version
   you had right before this install. To go back to 0.1.x after installing a beta and then this
   release, pass the oldest backup folder: type `bash `, drag `rollback.sh` into the window, type a
   space, drag the oldest folder from `~/GoldenPassport-backups/` into the window and press Return.
 - `bash rollback.sh --restore-data` also resets the whole data folder to how it was before the
-  install. Changes made since then are lost.
+  install. Changes made since then are lost. The item in the Keychain is left as it is: installing
+  0.2.0 again migrates from the restored data and keeps the earlier item as
+  `accounts.replaced-<time>`, which you can delete in Keychain Access.
 
 Accounts you add or change in 0.1.x after rolling back are not lost when you upgrade again:
 GoldenPassport lists what 0.1.x added, changed or deleted and lets you choose which accounts to
@@ -92,23 +103,25 @@ in 0.1.x is imported next to the existing one as "name (0.1.x)".
 ## Cleaning up
 
 Once 0.2.0 works for you and you no longer need to roll back, type `bash ` in Terminal, drag
-`cleanup.sh` into the window and press Return. It checks that `accounts.json` reads back cleanly,
-lists what it will delete and deletes only after you type `yes`. After that you can no longer roll
-back to 0.1.x; 0.2.0 itself keeps working as before.
+`cleanup.sh` into the window and press Return. It checks that your accounts read back from the
+Keychain, lists what it will delete and deletes only after you type `yes`. After that you can no
+longer roll back to 0.1.x or a beta; 0.2.0 itself keeps working as before.
 
-These files contain your secrets:
+These places contain your secrets:
 
 | Location | Contents | What to do |
 |---|---|---|
-| `~/GoldenPassport-backups/` | The app and data as they were before each install | **Delete** (`cleanup.sh` does this) |
-| `~/Library/Application Support/GoldenPassport/accounts.json` | The data 0.2.0 uses | Keep |
+| Login Keychain, item **GoldenPassport** | The accounts 0.2.0 uses | Keep |
+| `~/GoldenPassport-backups/` | The app and data as they were before each install, unencrypted | **Delete** (`cleanup.sh` does this) |
+| `~/Library/Application Support/GoldenPassport/accounts.json` | A beta's data file, unencrypted, kept for rolling back to the beta. Changes you make in 0.2.0 are not in it | Delete once you won't go back to a beta (`cleanup.sh` does this) |
 | `~/Library/Application Support/GoldenPassport/gp.secrets` | The 0.1.x data file, kept for rolling back. Accounts you delete in 0.2.0 **are still in it** | Delete once you won't go back to 0.1.x (`cleanup.sh` does this) |
 | `.secrets` / `.txt` files you exported | Every secret, unencrypted | Delete when you are done |
 
 `cleanup.sh` also deletes the 0.1.x `config.plist` and `legacy-baseline.json`, which records only
 account names and URL fingerprints, no secrets. Before deleting anything, it warns you if 0.2.0
-holds fewer accounts than `gp.secrets`, or if accounts you changed in 0.1.x after a rollback
-haven't been imported yet: their secrets exist only in the files it is about to delete.
+holds fewer accounts than `gp.secrets`, if accounts you changed in 0.1.x after a rollback haven't
+been imported yet, or if `accounts.json` has accounts the Keychain doesn't: their secrets exist
+only in the files it is about to delete.
 
 0.2.0 makes the data folder and the 0.1.x data files readable only by you (0.1.x left them
 readable by every user on this Mac). Their contents are not changed.

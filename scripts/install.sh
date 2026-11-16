@@ -6,7 +6,10 @@
 # Steps: check the package -> back up the installed app and data directory ->
 # quit the running app -> replace /Applications/GoldenPassport.app -> migrate and
 # verify data (names only, never secrets) -> launch. If migration does not verify,
-# the previous app and data are restored automatically.
+# the previous app and data are restored automatically. Builds that keep the accounts in
+# the login Keychain (Info.plist GPKeychainService) move them there from accounts.json or
+# gp.secrets; the backup holds the data folder only, and a Keychain item a failed migration
+# wrote stays and is set aside by the next one (docs/design/d3-keychain.md 5.4).
 #
 # WARNING: the backup in ~/GoldenPassport-backups/ is an UNENCRYPTED copy of every
 # MFA secret. It is made owner-only (chmod go-rwx); users must delete it once they
@@ -146,6 +149,7 @@ info "⚠️  备份里有你全部 MFA 密钥的未加密副本（权限：仅�
   echo "had_app=$([ -d "$TARGET" ] && echo yes || echo no)"
   echo "had_data=$([ -d "$DATA_DIR" ] && echo yes || echo no)"
   echo "gp_secrets_sha256=$(checksum "$DATA_DIR/gp.secrets")"
+  echo "accounts_json_sha256=$(checksum "$DATA_DIR/accounts.json")"
 } > "$BACKUP/manifest.txt"
 
 restore_previous() {
@@ -188,16 +192,37 @@ if [ $STATUS -ne 0 ]; then
     "The data check failed, so the previous state was restored. Please report this at https://github.com/thatscode/GoldenPassport/issues and include the output above (it shows account names only, no secrets)."
 fi
 ACCOUNTS="$(report_value account_count)"
-case "$(report_value status)" in
-  migrated) info "已从旧版迁移 $ACCOUNTS 条记录，与 gp.secrets 的 $(report_value legacy_count) 条逐条一致" \
+STORAGE="$(report_value storage)"
+SOURCE_FILE="$(report_value source)"
+case "$(report_value status):$STORAGE:$SOURCE_FILE" in
+  migrated:keychain:accounts.json) info "已把 $ACCOUNTS 条记录从 accounts.json 迁移到登录钥匙串，逐条一致" \
+    "Moved $(plural "$ACCOUNTS" account accounts) from accounts.json into the login keychain; every entry matches" ;;
+  migrated:keychain:*) info "已从旧版迁移 $ACCOUNTS 条记录到登录钥匙串，与 gp.secrets 的 $(report_value legacy_count) 条逐条一致" \
+    "Moved $(plural "$ACCOUNTS" account accounts) from 0.1.x into the login keychain; every entry matches gp.secrets" ;;
+  migrated:*) info "已从旧版迁移 $ACCOUNTS 条记录，与 gp.secrets 的 $(report_value legacy_count) 条逐条一致" \
     "Migrated $(plural "$ACCOUNTS" account accounts) from 0.1.x; every entry matches gp.secrets" ;;
-  already-migrated) info "沿用已有数据：$ACCOUNTS 条记录" "Keeping your existing data: $(plural "$ACCOUNTS" account accounts)" ;;
-  no-data) info "没有发现旧数据，这是一次全新安装" "No existing data found; this is a fresh install" ;;
+  already-migrated:*) info "沿用已有数据：$ACCOUNTS 条记录" "Keeping your existing data: $(plural "$ACCOUNTS" account accounts)" ;;
+  no-data:*) info "没有发现旧数据，这是一次全新安装" "No existing data found; this is a fresh install" ;;
 esac
-[ "$(checksum "$DATA_DIR/gp.secrets")" = "$(sed -n 's/^gp_secrets_sha256=//p' "$BACKUP/manifest.txt")" ] \
+manifest_value() { sed -n "s/^$1=//p" "$BACKUP/manifest.txt" | head -n 1; }
+[ "$(checksum "$DATA_DIR/gp.secrets")" = "$(manifest_value gp_secrets_sha256)" ] \
   || { restore_previous; die "gp.secrets 在安装过程中发生了变化，已自动恢复" "gp.secrets changed during the install, so the previous state was restored"; }
-[ -f "$DATA_DIR/gp.secrets" ] && info "旧版数据文件 gp.secrets 未被改动，可随时回退" \
-  "The 0.1.x data file gp.secrets is unchanged, so you can roll back at any time"
+# A build without the Keychain writes accounts.json itself; one with it must leave the file alone.
+[ "$STORAGE" != keychain ] || [ "$(checksum "$DATA_DIR/accounts.json")" = "$(manifest_value accounts_json_sha256)" ] \
+  || { restore_previous; die "accounts.json 在安装过程中发生了变化，已自动恢复" "accounts.json changed during the install, so the previous state was restored"; }
+if [ -f "$DATA_DIR/gp.secrets" ]; then
+  info "旧版数据文件 gp.secrets 未被改动，可随时回退" "The 0.1.x data file gp.secrets is unchanged, so you can roll back at any time"
+fi
+if [ "$STORAGE" = keychain ] && [ -f "$DATA_DIR/accounts.json" ]; then
+  info "内测版的数据文件 accounts.json 未被改动，可随时回退" "The beta's data file accounts.json is unchanged, so you can roll back at any time"
+fi
+# Unencrypted files that stay in the data folder for rolling back, for the warning below.
+LEFT_ZH=""; LEFT_EN=""
+for name in gp.secrets accounts.json; do
+  [ -f "$DATA_DIR/$name" ] || continue
+  [ "$name" = gp.secrets ] || [ "$STORAGE" = keychain ] || continue
+  LEFT_ZH="${LEFT_ZH:+$LEFT_ZH 和 }$name"; LEFT_EN="${LEFT_EN:+$LEFT_EN and }$name"
+done
 
 # Accounts 0.1.x changed after the migration, e.g. after rollback.sh (names only).
 LEGACY_CHANGES="$(printf '%s\n' "$REPORT" | sed -n 's/^legacy_change=//p')"
@@ -220,7 +245,14 @@ if [ "${GP_NO_LAUNCH:-0}" != "1" ]; then
   open "$TARGET"
 fi
 
+KEYCHAIN_NOTE=""; LEFT_NOTE=""
 if [ "$UI_LANG" = zh-Hans ]; then
+[ "$STORAGE" != keychain ] || KEYCHAIN_NOTE="  • 账号现在保存在登录钥匙串里（「钥匙串访问」中名为 GoldenPassport 的条目），
+    数据目录里不再写入密钥。
+"
+[ -z "$LEFT_ZH" ] || LEFT_NOTE="  • 数据目录里的 $LEFT_ZH 也是明文，会一直保留（供回退使用），
+    其中包括你之后在新版里删除的记录。
+"
 cat <<EOF
 
 安装完成：$OLD_VERSION → $NEW_VERSION
@@ -230,19 +262,23 @@ cat <<EOF
   • 自动填入验证码需要重新授权「辅助功能」：系统设置 → 隐私与安全性 → 辅助功能。
     如果列表里已有 GoldenPassport 但不生效，先用「−」删掉，再在菜单里重新选一次快捷键。
   • 回退到安装前的版本：bash "$SCRIPT_DIR/rollback.sh"
-
+$KEYCHAIN_NOTE
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   ⚠️  重要：备份中含有全部 MFA 密钥的未加密副本
       $BACKUP
   • 拿到这个目录的人可以生成你所有账号的验证码。
   • 不要复制、上传、发给别人，也不要放进 iCloud / 网盘等同步目录。
-  • 数据目录里旧版的 gp.secrets 也会一直保留（供回退使用），
-    其中包括你之后在新版里删除的记录。
-  • 确认新版使用正常、不再需要回退后，运行清理脚本删除以上两者：
+${LEFT_NOTE}  • 确认新版使用正常、不再需要回退后，运行清理脚本把它们都删掉：
       bash "$SCRIPT_DIR/cleanup.sh"
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 EOF
 else
+[ "$STORAGE" != keychain ] || KEYCHAIN_NOTE="  • Your accounts are now in the login keychain (the item named GoldenPassport in
+    Keychain Access); the data folder no longer holds any secrets.
+"
+[ -z "$LEFT_EN" ] || LEFT_NOTE="  • The data folder also keeps $LEFT_EN unencrypted (for rolling
+    back), including accounts you delete later in the new version.
+"
 cat <<EOF
 
 Installed: $OLD_VERSION → $NEW_VERSION
@@ -253,17 +289,15 @@ Good to know
     System Settings → Privacy & Security → Accessibility. If GoldenPassport is already listed
     but typing doesn't work, remove it with "−" and pick a hotkey option in the menu again.
   • To go back to the version you had before: bash "$SCRIPT_DIR/rollback.sh"
-
+$KEYCHAIN_NOTE
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   ⚠️  IMPORTANT: the backup holds an unencrypted copy of all your MFA secrets
       $BACKUP
   • Anyone who gets this folder can generate codes for all your accounts.
   • Don't copy, upload or send it to anyone, and keep it out of iCloud and
     other synced folders.
-  • The 0.1.x data file gp.secrets also stays in the data folder (for rolling
-    back), including accounts you delete later in the new version.
-  • Once the new version works for you and you no longer need to roll back,
-    delete both with the cleanup script:
+${LEFT_NOTE}  • Once the new version works for you and you no longer need to roll back,
+    delete all of it with the cleanup script:
       bash "$SCRIPT_DIR/cleanup.sh"
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 EOF

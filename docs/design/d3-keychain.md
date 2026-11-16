@@ -139,7 +139,7 @@ README 的「GoldenPassport 无法读取数据时」一节相应补充。
 代码也可以先写，但要等 Developer ID 账号（C1 之后）才能验证和发布：
 
 4. **读不出来时的提示和重新迁移**（约 0.5 天）。**已完成**，见第 11 节。
-5. 三个脚本、README、安装说明、CHANGELOG 和兼容策略（约 1 天）。
+5. **三个脚本、README、安装说明、CHANGELOG 和兼容策略**（约 1 天）。**已完成**，见第 11 节。
 6. 用 Developer ID 签名的探针测试首次授权、更新后不弹框、拒绝授权、条目被删，然后发 beta.4 给内测同事（约 1 天）。
 
 合计约 5.5 天，和之前估计的 6–7 天大体一致。
@@ -196,3 +196,13 @@ README 的「GoldenPassport 无法读取数据时」一节相应补充。
     - 条目不见、没有旧文件（英文界面）：点「Start with an Empty List」后 App 正常启动，条目里是空列表。
     - 拒绝授权：用 `security` 命令创建条目，App 读取时系统弹出授权框。点「拒绝」后出现我们的「没有获得读取钥匙串的授权」弹窗；点「重试」后系统再次询问，再拒绝、退出，什么都没写入。这也验证了第 3 节的说法：别的程序读取时系统会弹授权框（测试中用 `security find-generic-password -w` 读取 App 创建的条目，同样弹出了授权框）。
   - 授权框里点「始终允许」需要输入登录密码，没有测；同一个 Team ID 签名的新版本是否不再弹框，仍然留到第 6 步。
+- 2026-11-17，第 8 节第 5 步：
+  - `install.sh`：按 `storage=`、`source=` 说明迁移到了钥匙串、来源是哪个文件；`manifest.txt` 加 `accounts_json_sha256`，用钥匙串的构建安装后 `accounts.json` 变了就自动恢复；结束时说明账号在登录钥匙串里，警告框列出仍是明文的 `gp.secrets` / `accounts.json`。
+  - `rollback.sh`：按恢复的 App 是否有 `GPKeychainService` 区分；账号已在钥匙串里、恢复的是内测版时，提醒它看到的是迁移那一刻的 `accounts.json`，需要的话先导出（I5），再次升级后内测版里的改动由 `cleanup.sh` 列出；回到 0.1.x 时说明账号仍在钥匙串里；`--restore-data` 时说明钥匙串条目不变，再次安装会另存。
+  - `cleanup.sh`：账号在钥匙串里时，把 `accounts.json` 加进删除范围，删除前列出 `file_only=` 的账号（决策 4）；结束语说明账号在登录钥匙串里。用不用钥匙串的构建时行为不变。
+  - 文档：两份 README（0.2.0 的变化、安装、回退、清理、数据与安全、钥匙串读不出来时、构建、后续计划）、两份安装说明（按签名的正式版写，账号在钥匙串里）、两份 CHANGELOG、`docs/compatibility.md`（第 1 节加格式 2 和标记文件，第 2 节的保护，3.3 的决策 4 例外，`compat.json` 的 `dataFormat` 改为 2，I4、I5）。
+  - 脚本在临时目录里实测（`GP_*` 指向临时目录，新版用临时 service，`GP_NO_LAUNCH=1`）：
+    - 内测版 → 钥匙串构建：「已把 2 条记录从 accounts.json 迁移到登录钥匙串，逐条一致」；`rollback.sh` 回到内测版并给出提醒；在 `accounts.json` 里加一个账号后再次安装，报告沿用已有数据；`cleanup.sh --yes` 列出「Added in beta」后删除备份、`gp.secrets`、`accounts.json`、`legacy-baseline.json`，之后数据目录只剩 `accounts-v2.json` 和 `settings.json`，钥匙串读取正常。
+    - 0.1.x → 钥匙串构建（英文）：从 `gp.secrets` 迁移；重装报告沿用已有数据。这次迁移时钥匙串里已有上一个场景留下的条目，按 5.2 另存为 `accounts.replaced-<时间>`。
+    - 不用钥匙串的构建：安装和清理的输出与以前一致，`accounts.json` 保留。
+    - 测试结束后删除了临时目录和测试用的钥匙串条目。

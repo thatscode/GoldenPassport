@@ -85,10 +85,10 @@ Compared with the original 0.1.7 release.
   code, the bundled google-toolbox-for-mac sources and the Swifter HTTP server are all gone.
 - TOTP is implemented with CryptoKit and honours `algorithm`, `digits` and `period` from the
   otpauth URL (SHA1 / SHA256 / SHA512, 6–8 digits), verified against the RFC 6238 test vectors.
-- Accounts are stored as an ordered list (`accounts.json`) instead of a dictionary whose order
-  changed on every launch.
-- 78 unit tests cover TOTP, URL parsing, storage, migration, the HTTP API, the update check and
-  the translations.
+- Accounts are stored as an ordered list instead of a dictionary whose order changed on every
+  launch: in the login Keychain in signed releases, in `accounts.json` in builds you make yourself.
+- 113 unit tests cover TOTP, URL parsing, storage (including the Keychain), migration, the HTTP
+  API, the update check and the translations.
 
 ### New features
 
@@ -125,6 +125,11 @@ Compared with the original 0.1.7 release.
 
 ### Security & privacy
 
+- Signed releases keep your accounts in the **login Keychain** instead of a plaintext file. Other
+  apps can't read them without macOS asking you first, and copies of the data folder (installer
+  backups, sync tools, unencrypted Time Machine backups) no longer carry your secrets. Builds you
+  make yourself are ad-hoc signed, and macOS would ask for Keychain access after every update of
+  such a build, so they keep using `accounts.json` unless built with `KEYCHAIN=1`.
 - The HTTP API is off on new installs. It has no password, so while it runs anything running as
   you on this Mac can read every code. Upgrades from 0.1.x keep their previous setting.
 - GoldenPassport goes online only to check for updates, and only when you ask it to: choose
@@ -147,15 +152,16 @@ Compared with the original 0.1.7 release.
 | Default hotkeys | ⇧⌘0–9 (3/4/5 clash with screenshots) | **⌃⌥⌘0–9**; ⇧⌘ is still available in the menu |
 | Typing the code into the frontmost app | Accessibility permission | Still needs it, and it must be **granted again** after upgrading |
 | HTTP API at launch | On unless you turned it off | **Off on new installs**; upgrades keep the 0.1.x setting |
-| Data file | `gp.secrets` | `accounts.json` (migrated automatically on first launch; `gp.secrets` is kept but no longer updated) |
+| Where accounts are stored | `gp.secrets` | The login Keychain in signed releases, `accounts.json` in builds you make yourself. Migrated automatically on first launch; `gp.secrets` is kept but no longer updated |
 | Account order | Changed randomly between launches | Alphabetical after migration, then whatever order you set |
 
 # Installation
 
 > [!IMPORTANT]
 > **No release has been published yet.** The first release will follow once builds are notarized
-> by Apple. Until then, build the package from source as shown below; it is the same
-> package a release will contain.
+> by Apple. Until then, build the package from source as shown below. It holds the same app a
+> release will contain, except that a build you make yourself keeps your accounts in
+> `accounts.json` rather than the Keychain (see [Data & security](#data--security)).
 
 > [!NOTE]
 > Builds are **not yet notarized by Apple**, so macOS blocks them when opened from a download.
@@ -184,8 +190,9 @@ The installer:
 2. backs up the current app and data to `~/GoldenPassport-backups/<timestamp>/`
    (⚠️ this contains your secrets unencrypted, see [Data & security](#data--security));
 3. quits the running app and installs the new one to `/Applications`;
-4. migrates your accounts and checks every entry against `gp.secrets`, printing account names
-   only. **If anything does not match, it restores the previous app and data automatically**;
+4. migrates your accounts (into the login Keychain for a signed release) and checks every entry
+   against the file they came from (`gp.secrets`, or a beta's `accounts.json`), printing account
+   names only. **If anything does not match, it restores the previous app and data automatically**;
 5. starts GoldenPassport.
 
 <!-- SCREENSHOT install.png: Terminal after a successful install.sh run in English, showing the
@@ -207,6 +214,13 @@ from 0.2.0 and import it into 0.1.x. `bash rollback.sh --restore-data` also rese
 directory to its pre-install state. After an upgrade from an earlier 0.2.x build, `rollback.sh`
 restores that build instead; it uses the same `accounts.json`, so all your accounts stay as they are.
 
+Once a signed release has moved your accounts into the Keychain, a version that doesn't use the
+Keychain (0.1.x or a beta) can't see them there. It sees `gp.secrets` or `accounts.json` as they
+were at the move, and `rollback.sh` tells you so; export a `.secrets` backup first if you need
+recent changes there. When you upgrade again, the release keeps using the accounts in the
+Keychain. Changes made in a beta in the meantime are not carried over; `cleanup.sh` lists them
+before it deletes `accounts.json`.
+
 Accounts you add or change in 0.1.x after rolling back are not lost when you upgrade again:
 GoldenPassport lists what 0.1.x added, changed or deleted and lets you choose which accounts to
 import. It never overwrites or deletes the accounts you already have in 0.2.0; an account whose
@@ -215,11 +229,13 @@ URL changed in 0.1.x is imported next to the existing one as "name (0.1.x)".
 ### Cleaning up after the upgrade
 
 Once 0.2.0 works for you and you no longer need to roll back, run `bash cleanup.sh` from the same
-folder. It checks that `accounts.json` reads back cleanly, lists what it will delete (the installer
-backups and the legacy `gp.secrets` / `config.plist`, all of which contain your secrets
-unencrypted), warns if 0.2.0 holds fewer accounts than the legacy file or if accounts changed in
-0.1.x after a rollback haven't been imported yet (those files hold their only copies), and deletes
-only after you type `yes`. After that, rolling back to 0.1.x is no longer possible.
+folder. It checks that your accounts read back cleanly, lists what it will delete (the installer
+backups, the legacy `gp.secrets` / `config.plist` and, once your accounts are in the Keychain, a
+beta's `accounts.json`, all of which contain your secrets unencrypted), warns if 0.2.0 holds fewer
+accounts than the legacy file, if accounts changed in 0.1.x after a rollback haven't been imported
+yet, or if `accounts.json` has accounts the Keychain doesn't (those files hold their only copies),
+and deletes only after you type `yes`. After that, rolling back to 0.1.x or a beta is no longer
+possible.
 
 ### Manual installation
 
@@ -282,16 +298,27 @@ echo "$code"
 > - **Legacy data file**: after migration, `gp.secrets` stays in the data directory so the
 >   old app keeps working. It is never updated again, so **accounts you delete in 0.2.x
 >   remain in it**. Delete it once you are sure you won't go back to 0.1.x (`scripts/cleanup.sh`).
+> - **Beta data file**: after a signed release moves your accounts into the Keychain, a beta's
+>   `accounts.json` stays in the data directory, unencrypted, so that you can roll back. Delete it
+>   with `scripts/cleanup.sh` once you won't go back to the beta.
 > - **Exports**: both `.secrets` and `.txt` exports contain every secret unencrypted.
 > - **Dev build**: `make dev` copies the release data into `GoldenPassport-Dev/` on first
 >   launch; delete that directory when you are done developing.
 
-All data lives in `~/Library/Application Support/GoldenPassport/` (`accounts.json`,
-`settings.json`, plus the legacy `gp.secrets` / `config.plist`). Secrets are stored
-unencrypted, protected only by file permissions: 0.2.x restricts the directory to `0700`
+Signed releases keep the account list in one item named **GoldenPassport** in your login
+Keychain. It stays on this Mac (it is not synced through iCloud Keychain), and other apps that
+ask for it get a macOS prompt first. The data folder, `~/Library/Application Support/GoldenPassport/`,
+then holds no secrets: `accounts-v2.json` only says that the accounts are in the Keychain, and
+`settings.json` holds your settings. The Keychain doesn't change the HTTP API or exports: while
+the API runs, anything running as you can still read every code, and exports are still
+unencrypted.
+
+Builds you make yourself keep the list in `accounts.json` in the data folder instead,
+unencrypted and protected only by file permissions: 0.2.x restricts the directory to `0700`
 and its files to `0600` (0.1.x left them readable by every local user). After an upgrade from
-0.1.x, `legacy-baseline.json` records which accounts `gp.secrets` held, as names and URL
-fingerprints without any secrets, so that changes made in 0.1.x after a rollback can be found.
+0.1.x the folder also holds the legacy `gp.secrets` / `config.plist`, and `legacy-baseline.json`
+records which accounts `gp.secrets` held, as names and URL fingerprints without any secrets, so
+that changes made in 0.1.x after a rollback can be found.
 
 ### If GoldenPassport can't read its data
 
@@ -319,6 +346,25 @@ If the alert names `gp.secrets` instead, the 0.1.x data file is damaged and its 
 migrated. Move it out of the data folder, then restore your accounts from a backup or an export
 as above.
 
+#### If your accounts in the Keychain can't be read
+
+A signed release says why in the alert and changes nothing:
+
+- **Access was denied**: you clicked Deny when macOS asked. Click Retry and choose Always Allow.
+  macOS asks again after an update signed by a different developer.
+- **The keychain is locked**: unlock the login keychain in Keychain Access, then click Retry.
+- **The item is missing**, because it was deleted in Keychain Access or only the data folder was
+  copied to this Mac: if the data folder still has `accounts.json` or `gp.secrets`, GoldenPassport
+  offers to migrate again from it. That file holds your accounts as they were before they moved
+  to the Keychain, so import a newer export afterwards if you have one. Without such a file it
+  offers to start with an empty list, so that you can import an export; or quit and restore your
+  login keychain from a backup.
+- **The data comes from a newer version**: install that version again.
+
+When a migration finds an earlier GoldenPassport item in the Keychain, for example after
+`rollback.sh --restore-data`, it keeps that item as `accounts.replaced-<time>` instead of
+overwriting it. Delete those items in Keychain Access once you no longer need them.
+
 When asking for help in an [issue](https://github.com/thatscode/GoldenPassport/issues), include
 the alert text, but **never attach the data files**: they contain your secrets.
 
@@ -340,27 +386,34 @@ make beta      # universal release + install.sh / rollback.sh / tester notes, zi
 
 Apps are written to `~/Library/Caches/GoldenPassport-build/<variant>/` (kept out of the
 source tree because iCloud-synced folders break code signing). `ARCHS="arm64 x86_64"`
-builds a universal binary. Builds are ad-hoc signed with the hardened runtime.
+builds a universal binary. Builds are ad-hoc signed with the hardened runtime;
+`SIGN_IDENTITY="Developer ID Application: …"` signs with a certificate instead. `KEYCHAIN=1` keeps
+the accounts in the login Keychain (Info.plist `GPKeychainService`; the Dev build has its own
+item). It is the default only with `SIGN_IDENTITY`, because macOS treats every ad-hoc build as a
+new app and would ask for Keychain access after each update. `GP_KEYCHAIN_TESTS=1 make test`
+also runs the tests that use the real login Keychain, with a throwaway item.
 `scripts/package-beta.sh beta.3` packages a numbered beta. A beta build reports itself as
 `0.2.0-beta.3`, so once `0.2.0` is released, its update check offers it.
 
 On first launch, data from 0.1.x (`gp.secrets`, `config.plist`) is migrated to
 `accounts.json` / `settings.json` in the same directory; the legacy files are left in place
-(see [Data & security](#data--security)). `GoldenPassport --migrate-data [--data-dir PATH]`
+(see [Data & security](#data--security)). Builds with `KEYCHAIN=1` move the accounts into the
+Keychain instead, from a beta's `accounts.json` if there is one, else from `gp.secrets`. `GoldenPassport --migrate-data [--data-dir PATH]`
 runs the same migration headlessly and verifies it; `scripts/install.sh` relies on it.
 The Dev build copies the release data into `GoldenPassport-Dev/` instead and never writes
 to the release data directory, so it can run next to the installed app.
 
 `scripts/rollback.sh` restores the app replaced by `install.sh`. `scripts/cleanup.sh` deletes the
-installer backups and the legacy `gp.secrets` / `config.plist` once you are done with 0.1.x; it
-refuses to run unless 0.2.x is installed and `accounts.json` reads back cleanly. Tester instructions
+installer backups, the legacy `gp.secrets` / `config.plist` and, once the accounts are in the
+Keychain, `accounts.json`; it refuses to run unless 0.2.x is installed and its accounts read back
+cleanly. Tester instructions
 (Chinese) are in [`docs/beta-testing.md`](docs/beta-testing.md).
 
 # Roadmap
 
-- Developer ID signing and notarization, so downloads open without workarounds
+- Developer ID signing and notarization, so downloads open without workarounds; this also turns
+  on the Keychain storage
 - Bring the Homebrew cask back
-- Optionally store secrets in the Keychain
 
 # Credits & license
 

@@ -5,8 +5,11 @@
 #
 # By default only the app is restored and the data stays as it is: 0.2.x never
 # writes the gp.secrets that 0.1.x reads, and an earlier 0.2.x build reads the same
-# accounts.json. --restore-data also resets the whole data directory to its
-# pre-install state, discarding changes made since the install.
+# accounts.json. Once the accounts are in the login Keychain (accounts-v2.json in the
+# data directory), a restored build that doesn't use the Keychain sees accounts.json or
+# gp.secrets as they were at the move; the script says so (I5). --restore-data also
+# resets the whole data directory to its pre-install state, discarding changes made
+# since the install; the Keychain item stays, and the next install sets it aside.
 #
 # Messages are in Simplified Chinese or English, like the app (see ui_language).
 # Environment overrides (for testing): GP_BACKUP_ROOT, GP_NO_LAUNCH=1, GP_LANG=zh-Hans|en.
@@ -34,13 +37,16 @@ usage() {
 
 恢复 install.sh 替换掉的 GoldenPassport。默认只恢复 App，数据保持不变：0.1.x 读取的
 gp.secrets 从未被 0.2.x 改动过，更早的 0.2.x 版本读取的是同一个 accounts.json。
+账号已经存进钥匙串时，不用钥匙串的旧版本只能看到迁移那一刻的数据，脚本会提醒你。
 加上 --restore-data 会把整个数据目录也恢复到安装前，安装之后做的改动会丢失。
 不指定备份目录时，使用 $BACKUP_ROOT 里最新的一份。
 " "Usage: bash rollback.sh [--restore-data] [backup-folder]
 
 Restores the GoldenPassport app that install.sh replaced. By default only the app
 is restored and your data stays as it is: 0.2.x never writes the gp.secrets that
-0.1.x reads, and an earlier 0.2.x build reads the same accounts.json.
+0.1.x reads, and an earlier 0.2.x build reads the same accounts.json. Once your
+accounts are in the keychain, an older version that doesn't use it only sees the
+data from the time they moved; the script tells you so.
 --restore-data also resets the whole data folder to its state before the install,
 discarding changes made since then. Without a backup folder, the newest one in
 $BACKUP_ROOT is used.
@@ -108,22 +114,39 @@ else
 fi
 
 step "检查数据" "Checking data"
-# What the restored app reads: 0.1.x its gp.secrets, any 0.2.x build the same accounts.json.
+# What the restored app reads: 0.1.x its gp.secrets, a 0.2.x build without the Keychain
+# accounts.json, one with it (Info.plist GPKeychainService) the login Keychain.
 RESTORED=none
 if [ -d "$TARGET" ]; then
-  if /usr/libexec/PlistBuddy -c "Print :GPDataDirectoryName" "$TARGET/Contents/Info.plist" >/dev/null 2>&1; then
+  if /usr/libexec/PlistBuddy -c "Print :GPKeychainService" "$TARGET/Contents/Info.plist" >/dev/null 2>&1; then
+    RESTORED=keychain
+  elif /usr/libexec/PlistBuddy -c "Print :GPDataDirectoryName" "$TARGET/Contents/Info.plist" >/dev/null 2>&1; then
     RESTORED=0.2
   else
     RESTORED=0.1
   fi
 fi
+# accounts-v2.json: the accounts were moved into the login Keychain.
+IN_KEYCHAIN=no
+[ -f "$DATA_DIR/accounts-v2.json" ] && IN_KEYCHAIN=yes
 if [ $RESTORE_DATA = 1 ]; then
   rm -rf "$DATA_DIR"
   [ -d "$BACKUP/data" ] && ditto "$BACKUP/data" "$DATA_DIR"
   info "数据目录已恢复到安装前" "The data folder is back to its state before the install"
+  if [ $IN_KEYCHAIN = yes ] && [ ! -f "$DATA_DIR/accounts-v2.json" ]; then
+    info "钥匙串里的账号条目保持不变。再次安装新版时会从恢复的数据重新迁移，原来的条目另存为 accounts.replaced-<时间>。" \
+      "The accounts item in the keychain is left as it is. Installing the new version again migrates from the restored data and keeps the old item as accounts.replaced-<time>."
+  fi
+elif [ $RESTORED = keychain ] || { [ $RESTORED = 0.2 ] && [ $IN_KEYCHAIN = no ]; }; then
+  info "数据保持不变：恢复的版本读取同样的数据，所有记录都在" \
+    "Your data is unchanged: the restored version reads the same data, so all your accounts are there"
 elif [ $RESTORED = 0.2 ]; then
-  info "数据保持不变：恢复的版本使用同一个 accounts.json，所有记录都在" \
-    "Your data is unchanged: the restored version uses the same accounts.json, so all your accounts are there"
+  info "新版把账号存在登录钥匙串里，恢复的版本读不到，它看到的是迁移那一刻的 accounts.json。" \
+    "The new version keeps your accounts in the login keychain. The restored version can't read them there; it sees accounts.json as it was when they moved."
+  info "在新版里新增或修改的记录，恢复的版本看不到。需要的话，先在新版菜单里导出 .secrets，再导入恢复的版本。" \
+    "Accounts added or changed in the new version are not visible to it. If you need them there, export a .secrets backup from the new version's menu and import it."
+  info "再次升级后，新版继续使用钥匙串里的账号；在恢复的版本里做的改动不会自动带过去，cleanup.sh 删除 accounts.json 前会列出它们。" \
+    "When you upgrade again, the new version keeps using the accounts in the keychain. Changes made in the restored version are not carried over; cleanup.sh lists them before it deletes accounts.json."
 elif [ $RESTORED = none ]; then
   info "数据目录保持不变，再次安装时会继续使用" "The data folder is left as it is and is used again if you reinstall"
 elif [ "$(checksum "$DATA_DIR/gp.secrets")" = "$(manifest gp_secrets_sha256)" ]; then
@@ -133,9 +156,14 @@ else
     "[WARNING] gp.secrets differs from the backup; restoring it from the backup"
   cp -p "$BACKUP/data/gp.secrets" "$DATA_DIR/gp.secrets"
 fi
-if [ $RESTORE_DATA = 0 ] && [ $RESTORED = 0.1 ] && [ -f "$DATA_DIR/accounts.json" ]; then
-  info "新版的 accounts.json 仍保留在数据目录里，旧版不会读取它；再次安装新版时会继续使用。" \
-    "The new version's accounts.json stays in the data folder. 0.1.x doesn't read it; the new version uses it again when you reinstall."
+if [ $RESTORE_DATA = 0 ] && [ $RESTORED = 0.1 ] && { [ -f "$DATA_DIR/accounts.json" ] || [ $IN_KEYCHAIN = yes ]; }; then
+  if [ $IN_KEYCHAIN = yes ]; then
+    info "新版的账号仍保存在登录钥匙串里，旧版不会读取；再次安装新版时会继续使用。" \
+      "The new version's accounts stay in the login keychain. 0.1.x doesn't read them; the new version uses them again when you reinstall."
+  else
+    info "新版的 accounts.json 仍保留在数据目录里，旧版不会读取它；再次安装新版时会继续使用。" \
+      "The new version's accounts.json stays in the data folder. 0.1.x doesn't read it; the new version uses it again when you reinstall."
+  fi
   info "在新版里新增或修改的记录，旧版看不到。需要的话，先在新版菜单里导出 .secrets，再导入旧版。" \
     "Accounts added or changed in the new version are not visible to 0.1.x. If you need them there, export a .secrets backup from the new version's menu and import it into 0.1.x."
   info "反过来，回退后在旧版里做的改动，再次升级时 GoldenPassport 会提示你导入。" \

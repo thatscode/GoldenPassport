@@ -10,7 +10,9 @@ GoldenPassport 保存的是 MFA 密钥。数据一旦丢失，用户可能被锁
 
 | 对象 | 位置 / 形式 | 谁会读 | 当前格式 |
 |---|---|---|---|
-| 账号数据 | 数据目录 `accounts.json` | 0.2.x 各版本 | **数据格式 1**：JSON 数组，元素为 `{id, name, url}` |
+| 账号数据（格式 2） | 登录钥匙串里的通用密码条目：service 取自 Info.plist 的 `GPKeychainService`（正式版 `site.stanzhai.GoldenPassport`），account 为 `accounts` | 设置了 `GPKeychainService` 的构建（签名的正式版） | **数据格式 2**：`{"formatVersion": 2, "accounts": [{id, name, url}]}`，见 [D3 设计](design/d3-keychain.md) |
+| 格式 2 的标记文件 | 数据目录 `accounts-v2.json` | 格式 2 的构建、`rollback.sh`、`cleanup.sh`；不用钥匙串的构建看到它就停下 | JSON `{formatVersion: 2, storage: "keychain", service, migratedFrom, migratedAt}`，全新安装没有 `migratedFrom`；不含密钥和账号名称 |
+| 账号数据（格式 1） | 数据目录 `accounts.json` | 内测版和没有设置 `GPKeychainService` 的构建；格式 2 的迁移逻辑 | **数据格式 1**：JSON 数组，元素为 `{id, name, url}`。格式 2 的构建从不修改它 |
 | 设置 | 数据目录 `settings.json` | 0.2.x 各版本 | JSON 对象，所有字段可选 |
 | 旧版数据 | 数据目录 `gp.secrets`、`config.plist` | 0.1.x；0.2.x 的迁移逻辑 | **数据格式 0**：NSKeyedArchiver `[String: String]`。0.2.x 从不修改内容，只把权限收紧为 `0600` |
 | 旧版数据的基线 | 数据目录 `legacy-baseline.json` | 0.2.x 各版本 | JSON `{version: 1, source: "gp.secrets", recordedAt, entries: {名称: URL 指纹}}`，不含密钥和 URL（I6） |
@@ -25,7 +27,8 @@ GoldenPassport 保存的是 MFA 密钥。数据一旦丢失，用户可能被锁
 ## 2. 现有的保护
 
 - **读不懂就停下**：启动时如果 `accounts.json` 存在但无法解析，程序会提示错误并退出，不会把它当成空列表，也就不会在下次保存时覆盖它。`AccountStore` 本身也会报错，不会返回空列表。还没迁移时，读不懂 `gp.secrets` 同样会停下，否则会生成一个空的 `accounts.json`，账号就再也不会迁移过来（`AccountStore.load`、`AppEnvironment.prepareDataDirectory`，测试为 `corruptAccountsFileIsAnError`、`unreadableFileThrowsAndIsLeftAlone`、`unreadableLegacyFileStopsMigration`）。
-- **旧文件内容不变**：从 0.1.x 迁移时生成新的 `accounts.json`，`gp.secrets` 的内容保持原样（只收紧权限），所以装回 0.1.x 仍能看到迁移那一刻的全部账号。
+- **旧文件内容不变**：从 0.1.x 迁移时生成新的 `accounts.json`，`gp.secrets` 的内容保持原样（只收紧权限），所以装回 0.1.x 仍能看到迁移那一刻的全部账号。迁移到钥匙串（格式 2）时同样不改动 `accounts.json` 和 `gp.secrets`，`install.sh` 会核对这两个文件在安装前后一致。
+- **钥匙串读不出来就停下**：条目不见了（而标记文件还在）、内容读不懂、格式更高、授权被拒绝、钥匙串锁着，都提示原因并停下，不写入任何东西；条目不见时只有用户选择后才从旧文件重新迁移。迁移写入后读回逐条比较，一致才写标记文件（`KeychainStorageTests`、`KeychainMigrationTests`）。
 - **安装前备份**：`install.sh` 会先完整备份 App 和数据目录，迁移后逐条核对，核对失败就自动恢复；`rollback.sh` 可以恢复备份。
 - **回退提醒**：`rollback.sh` 回退后，如果数据目录里有 `accounts.json`，会提醒用户：新版里新增或修改的账号旧版看不到，需要的话先在新版里导出 `.secrets`，再导入旧版。
 - **发现回退期间的改动**：从 0.1.x 迁移时记下 `gp.secrets` 的基线（每个账号的名称和 URL 指纹）。之后启动时如果 `gp.secrets` 和基线不同，就列出 0.1.x 新增、修改、删除的账号，由用户选择导入；导入只新增，不覆盖、不删除已有账号。`install.sh` 会列出这些改动，`cleanup.sh` 在删除前警告还没导入的账号（I6，测试见 `LegacyChangesTests`）。
@@ -66,10 +69,12 @@ GoldenPassport 保存的是 MFA 密钥。数据一旦丢失，用户可能被锁
 
 反过来也一样：迁移只在新文件不存在时进行一次，**回退后在旧版本里做的修改，不会自动带到新版本**。对 0.1.x 的做法是：迁移时记下旧文件的基线，之后启动时发现旧文件和基线不同，就列出这些改动，由用户选择导入，`install.sh` 和 `cleanup.sh` 也会提示（I6，见第 2 节）。以后每次升级数据格式，都要为被取代的旧文件做同样的事，`legacy-baseline.json` 的 `source` 字段就是为此预留的。
 
+格式 1 → 格式 2 是例外（D3 决策 4）：`accounts.json` 只在内测版里用过，所以不做完整的「列出改动、选择导入」。`--migrate-data` 列出 `accounts.json` 里有、钥匙串里没有的账号（按 URL 比较），`cleanup.sh` 删除 `accounts.json` 前逐个提醒。
+
 需要配套做的事：
 
 - Release 说明的「升级须知」写明这两个方向；
-- `rollback.sh` 已经对 0.1.x 给出提醒（第 2 节）。以后出现新格式文件时，同样要提醒：回退后看到的是升级前的数据；如果需要新版本里改过的账号，先在新版本里**导出**，回退后再导入（I5）。
+- `rollback.sh` 对 0.1.x 给出提醒（第 2 节）；账号已经存进钥匙串、恢复的版本不用钥匙串时，同样提醒：回退后看到的是迁移那一刻的数据；如果需要新版本里改过的账号，先在新版本里**导出**，回退后再导入（I5）。
 
 ### 3.4 设置文件
 
@@ -117,12 +122,12 @@ GoldenPassport 保存的是 MFA 密钥。数据一旦丢失，用户可能被锁
 每个 Release 都上传一个名为 `compat.json` 的附件：
 
 ```json
-{"dataFormat": 1, "minUpgradeFrom": null}
+{"dataFormat": 2, "minUpgradeFrom": null}
 ```
 
 | 字段 | 含义 |
 |---|---|
-| `dataFormat` | 这个版本使用的账号数据格式号（目前是 1） |
+| `dataFormat` | 这个版本使用的账号数据格式号。0.2.0 正式版是 2（签名构建把账号存进钥匙串）；内测版和自己构建的版本是 1，检查更新时会据此提醒数据格式变化 |
 | `minUpgradeFrom` | 能直接升级到这个版本的最低版本，例如 `"0.3.0"`。`null` 表示任何版本都能直接升级 |
 
 用附件而不是写在 Release 说明里，是因为附件不会在编辑说明时被误删，客户端也不用从说明文字里去解析。以后要加字段，按 3.1 只加可选字段，客户端会忽略不认识的字段。
@@ -157,7 +162,7 @@ GoldenPassport 保存的是 MFA 密钥。数据一旦丢失，用户可能被锁
 | I1 | **启动失败提示更明确**：说明文件没有被改动、为什么不启动，提供「在 Finder 中显示」和帮助链接。帮助里写清楚恢复方法：用备份里的 `accounts.json` 替换，或者导入之前导出的文件。**不要建议 `rollback.sh --restore-data`**：它会把 App 降回安装前的版本，并把整个数据目录恢复到安装前，之后的改动全部丢失 | 正式发布前 | 已完成（README「GoldenPassport 无法读取数据时」） |
 | I2 | **`AccountStore` 自身不再把读不懂的文件当成空列表**，改为抛出错误。启动检查已经能拦住这种情况，这一条是额外的保险，防止以后有代码绕过启动检查直接创建 `AccountStore` | 正式发布前 | 已完成 |
 | I3 | 「检查更新」读取 `compat.json`，按第 5 节的规则提示（D2 的一部分） | D2 | 已完成（`UpdateChecker`，测试见 `UpdateCheckTests`） |
-| I4 | 发布流程（C3）加上第 6 节的检查清单；第一个 Release 附带 `compat.json`（`dataFormat: 1`） | C3 | 待实施 |
-| I5 | 出现新格式文件后，`rollback.sh` 给出 3.3 的提醒 | 第一次不可逆变更时 | 待实施 |
+| I4 | 发布流程（C3）加上第 6 节的检查清单；第一个 Release 附带 `compat.json`（`dataFormat: 2`，D3 决策 1） | C3 | 待实施 |
+| I5 | 出现新格式文件后，`rollback.sh` 给出 3.3 的提醒 | 第一次不可逆变更时（D3） | 已完成（D3 第 5 步：账号存进钥匙串后，回退到不用钥匙串的版本时提醒） |
 | I6 | **发现旧版本在迁移之后改过数据时，提醒用户**（3.3 的反方向）：迁移时记下 `gp.secrets` 的基线（名称和 URL 指纹）；启动时比对，列出 0.1.x 的改动，由用户选择导入；`install.sh` 列出改动，`cleanup.sh` 警告还没导入的账号 | 正式发布前 | 已完成（设计见 [i6-legacy-changes.md](design/i6-legacy-changes.md)，测试见 `LegacyChangesTests`） |
 | I7 | **设置文件按 3.4 处理**：HTTP 服务默认关闭（从 0.1.x 升级的用户保持原设置）；逐项解析；整个文件读不懂时改名保留 | 正式发布前 | 已完成 |

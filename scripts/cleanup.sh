@@ -4,13 +4,14 @@
 #   - installer backups in ~/GoldenPassport-backups/
 #   - the legacy gp.secrets / config.plist in the data directory
 #     (and legacy-baseline.json, which only describes gp.secrets)
+#   - accounts.json, once the installed build keeps the accounts in the login Keychain
 #
 #   bash cleanup.sh [--yes]
 #
-# Refuses to run unless 0.2.x is installed and accounts.json reads back cleanly.
+# Refuses to run unless 0.2.x is installed and its accounts read back cleanly.
 # Warns about accounts changed in 0.1.x after the migration that were never
-# imported: their only copies are about to be deleted. Afterwards rollback.sh can
-# no longer restore 0.1.x.
+# imported, and about accounts only accounts.json still has: their only copies are
+# about to be deleted. Afterwards rollback.sh can no longer restore 0.1.x or a beta.
 #
 # Messages are in Simplified Chinese or English, like the app (see ui_language).
 # Environment overrides (for testing): GP_APPLICATIONS_DIR, GP_DATA_DIR, GP_BACKUP_ROOT,
@@ -44,17 +45,19 @@ usage() {
 确认 0.2.x 使用正常、不再需要回退后，删除从 0.1.x 升级时留下的未加密密钥副本：
   - $BACKUP_ROOT 里的安装备份
   - 数据目录里旧版的 gp.secrets / config.plist
-只有在已安装 0.2.x、并且 accounts.json 读取正常时才会执行。删除前要输入 yes 确认，
---yes 跳过确认。清理之后，rollback.sh 就不能再回退到 0.1.x 了。
+  - 账号已经存进钥匙串时，数据目录里内测版的 accounts.json
+只有在已安装 0.2.x、并且账号读取正常时才会执行。删除前要输入 yes 确认，
+--yes 跳过确认。清理之后，rollback.sh 就不能再回退到 0.1.x 或内测版了。
 " "Usage: bash cleanup.sh [--yes]
 
 Once 0.2.x works for you and you no longer need to roll back, deletes the
 unencrypted copies of your secrets that the upgrade from 0.1.x left behind:
   - the installer backups in $BACKUP_ROOT
   - the legacy gp.secrets / config.plist in the data folder
-Runs only if 0.2.x is installed and accounts.json reads back cleanly. Asks you to
+  - the beta's accounts.json, once your accounts are in the keychain
+Runs only if 0.2.x is installed and your accounts read back cleanly. Asks you to
 type yes before deleting; --yes skips that. Afterwards rollback.sh can no longer
-restore 0.1.x.
+restore 0.1.x or a beta.
 "
 }
 
@@ -87,7 +90,12 @@ report_value() { printf '%s\n' "$REPORT" | sed -n "s/^$1=//p" | head -n 1; }
   "Reading or checking the new version's data failed. To be safe, nothing was deleted"; }
 CURRENT="$(report_value account_count)"
 LEGACY="$(report_value legacy_count)"
-info "新版 accounts.json：$CURRENT 条记录，读取正常" "accounts.json: $(plural "$CURRENT" account accounts), reads back fine"
+STORAGE="$(report_value storage)"
+if [ "$STORAGE" = keychain ]; then
+  info "登录钥匙串里的账号：$CURRENT 条记录，读取正常" "Accounts in the login keychain: $(plural "$CURRENT" account accounts), read back fine"
+else
+  info "新版 accounts.json：$CURRENT 条记录，读取正常" "accounts.json: $(plural "$CURRENT" account accounts), reads back fine"
+fi
 
 # --- 2. What will be deleted ------------------------------------------------
 step "将要删除的内容（都含有未加密的 MFA 密钥）" "To be deleted (all of it holds unencrypted MFA secrets)"
@@ -103,6 +111,12 @@ for name in gp.secrets config.plist; do
     TARGETS+=("$DATA_DIR/$name")
   fi
 done
+# Once the accounts are in the Keychain, accounts.json is only a plaintext copy for rolling
+# back to a beta build.
+if [ "$STORAGE" = keychain ] && [ -f "$DATA_DIR/accounts.json" ]; then
+  info "• 内测版的数据文件：$DATA_DIR/accounts.json" "• Beta data file: $DATA_DIR/accounts.json"
+  TARGETS+=("$DATA_DIR/accounts.json")
+fi
 [ ${#TARGETS[@]} -gt 0 ] || { info "没有需要清理的内容。" "Nothing to clean up."; exit 0; }
 # The record of what gp.secrets held (names and fingerprints, no secrets) goes with it.
 if [ -f "$DATA_DIR/gp.secrets" ] && [ -f "$DATA_DIR/legacy-baseline.json" ]; then
@@ -136,6 +150,20 @@ if [ "${IMPORTS:-0}" -gt 0 ] && [ -f "$DATA_DIR/gp.secrets" ]; then
   info "    建议先打开 GoldenPassport，按提示导入，再运行清理。" \
     "    Open GoldenPassport and import them when it asks, then run the cleanup again."
 fi
+# Accounts accounts.json has and the Keychain doesn't (by URL): deleted in the new version,
+# or added or changed in a beta build after a rollback (design 5.4, decision 4).
+FILE_ONLY="$(printf '%s\n' "$REPORT" | sed -n 's/^file_only=//p')"
+if [ "$STORAGE" = keychain ] && [ -n "$FILE_ONLY" ] && [ -f "$DATA_DIR/accounts.json" ]; then
+  COUNT="$(printf '%s\n' "$FILE_ONLY" | wc -l | tr -d ' ')"
+  info ""
+  info "⚠️  accounts.json 里有 $COUNT 个账号不在钥匙串里：" \
+    "⚠️  accounts.json has $(plural "$COUNT" account accounts) that the keychain doesn't:"
+  printf '%s\n' "$FILE_ONLY" | while IFS= read -r name; do info "      • $name"; done
+  info "    可能是你在新版里删掉的，也可能是回退到内测版期间新增或改过的。清理后将无法找回。" \
+    "    You may have deleted them in the new version, or added or changed them in a beta after rolling back. After the cleanup they can't be recovered."
+  info "    需要保留的话，先用 rollback.sh 回到内测版导出 .secrets，再装回新版并导入，然后再运行清理。" \
+    "    To keep them, go back to the beta with rollback.sh and export a .secrets file, then reinstall the new version, import it, and run the cleanup again."
+fi
 info ""
 info "清理后：rollback.sh 无法再回退到旧版；新版的使用不受任何影响。" \
   "Afterwards rollback.sh can no longer restore 0.1.x. The new version works exactly as before."
@@ -154,5 +182,10 @@ for path in "${TARGETS[@]}"; do
   rm -rf "$path"
   info "已删除 $path" "Deleted $path"
 done
-printf '\n%s\n' "$(say "清理完成。你的账号保存在 $DATA_DIR/accounts.json，新版照常使用。" \
-  "Cleanup complete. Your accounts are in $DATA_DIR/accounts.json, and the new version works as before.")"
+if [ "$STORAGE" = keychain ]; then
+  printf '\n%s\n' "$(say "清理完成。你的账号保存在登录钥匙串里，新版照常使用。" \
+    "Cleanup complete. Your accounts are in the login keychain, and the new version works as before.")"
+else
+  printf '\n%s\n' "$(say "清理完成。你的账号保存在 $DATA_DIR/accounts.json，新版照常使用。" \
+    "Cleanup complete. Your accounts are in $DATA_DIR/accounts.json, and the new version works as before.")"
+fi
