@@ -1,0 +1,52 @@
+{
+  "fill": {
+    "linear-gradient": [
+      "srgb:0.14902,0.22353,0.41569,1.00000",
+      "srgb:0.05490,0.09412,0.19608,1.00000"
+    ]
+  },
+  "groups": [
+    {
+      "layers": [
+        {
+          "glass": true,
+          "image-name": "person.svg",
+          "name": "person",
+          "position": {
+            "scale": 1.12,
+            "translation-in-points": [
+              0,
+              0
+            ]
+          }
+        },
+        {
+          "glass": true,
+          "image-name": "key.svg",
+          "name": "key",
+          "position": {
+            "scale": 1.12,
+            "translation-in-points": [
+              0,
+              0
+            ]
+          }
+        }
+      ],
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.5
+      },
+      "specular": true,
+      "translucency": {
+        "enabled": false,
+        "value": 0
+      }
+    }
+  ],
+  "supported-platforms": {
+    "squares": [
+      "macOS"
+    ]
+  }
+}

@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+<defs><linearGradient id="k" x1="-170" y1="-170" x2="540" y2="170" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#FFE27D"/><stop offset="1" stop-color="#E3A114"/></linearGradient><clipPath id="inner"><circle r="100" transform="rotate(-45)"/></clipPath></defs>
+<g transform="translate(512 512) rotate(-45) translate(-190 0)" fill="url(#k)"><g transform="rotate(45)">
+<circle cx="0" cy="-30" r="42"/><path d="M -84 120 L -84 80 C -84 36 -44 20 0 20 C 44 20 84 36 84 80 L 84 120 Z" clip-path="url(#inner)"/>
+</g></g></svg>

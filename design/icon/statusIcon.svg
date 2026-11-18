@@ -1,0 +1,8 @@
+<!-- Menu bar template image (Resources/statusIcon.pdf). scripts/render-icons.sh -->
+<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 760 760">
+<defs><mask id="m" maskUnits="userSpaceOnUse" x="-600" y="-600" width="1400" height="1400"><rect x="-600" y="-600" width="1400" height="1400" fill="white"/><circle r="104" fill="black"/></mask>
+<clipPath id="inner"><circle r="84" transform="rotate(-45)"/></clipPath></defs>
+<g transform="translate(380 380) rotate(-45) translate(-185 0)" fill="#000">
+<g mask="url(#m)"><circle r="170"/><rect x="110" y="-55" width="440" height="110" rx="55"/><rect x="380" y="-30" width="72" height="190" rx="22"/><rect x="470" y="-30" width="72" height="150" rx="22"/></g>
+<g transform="rotate(45)"><circle cx="0" cy="-28" r="48"/><path d="M -90 130 L -90 84 C -90 38 -46 24 0 24 C 46 24 90 38 90 84 L 90 130 Z" clip-path="url(#inner)"/></g>
+</g></svg>

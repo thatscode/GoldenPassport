@@ -42,7 +42,7 @@ APP="$BUILD_ROOT/$VARIANT/$APP_NAME.app"
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN_DIR/GoldenPassport" "$APP/Contents/MacOS/$EXECUTABLE"
-cp "$ROOT/Resources/statusIcon.png" "$APP/Contents/Resources/"
+cp "$ROOT/Resources/statusIcon.pdf" "$APP/Contents/Resources/"
 cp "$ROOT/LICENSE" "$APP/Contents/Resources/"
 
 # UI strings are written in Simplified Chinese and used as localization keys;
@@ -59,9 +59,24 @@ for lproj in en zh-Hans; do
   cp "$ROOT/Resources/$lproj.lproj/"Localizable.* "$APP/Contents/Resources/$lproj.lproj/"
 done
 
+# App icon: macOS 26 and later draw Resources/AppIcon.icon (Icon Composer layers) from Assets.car;
+# macOS 13–15 use AppIcon.icns, made from the flat rendering in Resources/AppIcon.png
+# (scripts/render-icons.sh). An actool without .icon support (Xcode 16) only skips Assets.car.
+ICON_NAME=""
+ACTOOL_OUT="$BUILD_ROOT/actool"
+rm -rf "$ACTOOL_OUT"; mkdir -p "$ACTOOL_OUT"
+if xcrun actool "$ROOT/Resources/AppIcon.icon" --compile "$ACTOOL_OUT" --platform macosx \
+     --minimum-deployment-target 13.0 --app-icon AppIcon \
+     --output-partial-info-plist "$ACTOOL_OUT/partial.plist" >"$ACTOOL_OUT/log.txt" 2>&1 \
+   && [ -f "$ACTOOL_OUT/Assets.car" ]; then
+  cp "$ACTOOL_OUT/Assets.car" "$APP/Contents/Resources/"
+  ICON_NAME=AppIcon
+else
+  echo "note: actool could not compile AppIcon.icon (needs Xcode 26 or later); using AppIcon.icns only" >&2
+fi
 ICONSET="$BUILD_ROOT/AppIcon.iconset"
 rm -rf "$ICONSET"; mkdir -p "$ICONSET"
-for size in 16 32 128 256; do
+for size in 16 32 128 256 512; do
   sips -z $size $size "$ROOT/Resources/AppIcon.png" --out "$ICONSET/icon_${size}x${size}.png" >/dev/null
   sips -z $((size * 2)) $((size * 2)) "$ROOT/Resources/AppIcon.png" --out "$ICONSET/icon_${size}x${size}@2x.png" >/dev/null
 done
@@ -94,6 +109,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 </dict>
 </plist>
 PLIST
+[ -z "$ICON_NAME" ] || /usr/libexec/PlistBuddy -c "Add :CFBundleIconName string $ICON_NAME" "$APP/Contents/Info.plist"
 [ -z "$PRERELEASE" ] || /usr/libexec/PlistBuddy -c "Add :GPPrerelease string $PRERELEASE" "$APP/Contents/Info.plist"
 # The Dev build keeps its own Keychain item, as it keeps its own data folder.
 [ "$KEYCHAIN" != 1 ] || /usr/libexec/PlistBuddy -c "Add :GPKeychainService string $BUNDLE_ID" "$APP/Contents/Info.plist"

@@ -1,0 +1,15 @@
+<!-- Flat rendering of Resources/AppIcon.icon for macOS 13–15 (AppIcon.icns). scripts/render-icons.sh -->
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+<defs>
+ <linearGradient id="bg" x1="0" y1="100" x2="0" y2="924" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#26396A"/><stop offset="1" stop-color="#0E1832"/></linearGradient>
+ <linearGradient id="k" x1="-170" y1="-170" x2="540" y2="170" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#FFE27D"/><stop offset="1" stop-color="#E3A114"/></linearGradient>
+ <mask id="m" maskUnits="userSpaceOnUse" x="-600" y="-600" width="1400" height="1400"><rect x="-600" y="-600" width="1400" height="1400" fill="white"/><circle r="122" fill="black"/></mask>
+ <clipPath id="inner"><circle r="100" transform="rotate(-45)"/></clipPath>
+ <filter id="s" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="16" stdDeviation="20" flood-color="#000" flood-opacity="0.28"/></filter>
+</defs>
+<filter id="tile" x="-10%" y="-10%" width="120%" height="125%"><feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#000" flood-opacity="0.3"/></filter>
+<rect x="100" y="100" width="824" height="824" rx="185" fill="url(#bg)" filter="url(#tile)"/>
+<g transform="translate(512 512) rotate(-45) translate(-190 0)" filter="url(#s)" fill="url(#k)">
+ <g mask="url(#m)"><circle cx="0" cy="0" r="170"/><rect x="110" y="-46" width="440" height="92" rx="46"/><rect x="392" y="-30" width="58" height="182" rx="20"/><rect x="474" y="-30" width="58" height="142" rx="20"/></g><g transform="rotate(45)"><circle cx="0" cy="-30" r="42"/><path d="M -84 120 L -84 80 C -84 36 -44 20 0 20 C 44 20 84 36 84 80 L 84 120 Z" clip-path="url(#inner)"/></g>
+</g>
+</svg>

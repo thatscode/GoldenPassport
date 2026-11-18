@@ -25,6 +25,9 @@ see [Installation](README.md#installation).
 
 ### New features
 
+- **New app icon** in the macOS 26 style (a gold key with a person in its bow, after the original
+  icon), with a matching menu bar icon that stays sharp at every size. macOS 13–15 show a flat
+  version of it.
 - **English interface**: 0.1.x menus were in Chinese only. The interface follows the system
   language, or pick one in the menu under **Language / 语言**.
 - **Manage window** (⌘M): drag or use the arrow buttons to reorder, double-click to rename,
