@@ -31,10 +31,7 @@ is listed as `name: code`; click a row to copy its code. The first ten accounts 
 hotkey on the right. Below the list are account management, the local HTTP API, hotkey settings,
 launch at login and update checks.
 
-<!-- SCREENSHOT screenshot/en/menu.png: the menu in the English UI with a few made-up accounts,
-     showing the Language / 语言, Check for Updates… and Check for Updates Daily items. Replace the
-     Chinese screenshot below with it. -->
-<img src="screenshot/menu.png" alt="Menu bar menu" width="380">
+<img src="screenshot/en/menu.png" alt="Menu bar menu" width="380">
 
 ### Adding an account
 
@@ -42,9 +39,7 @@ Choose **Add…** (⌘A) and paste an `otpauth://` URL, or pick a QR code image 
 **Read from QR Code Image…**. The **Name** is filled in from the URL label; edit it before adding
 if you like.
 
-<!-- SCREENSHOT screenshot/en/add-window.png: the Add Account window in the English UI. Replace
-     the Chinese screenshot below with it. -->
-<img src="screenshot/add-window.png" alt="Add an account" width="560">
+<img src="screenshot/en/add-window.png" alt="Add an account" width="560">
 
 ### Managing accounts
 
@@ -53,9 +48,7 @@ buttons to reorder; the first ten rows show which hotkey they get. Double-click 
 or right-click for **Rename…**, **Edit URL…** and **Delete…**; the same actions are available as
 buttons at the bottom.
 
-<!-- SCREENSHOT screenshot/en/manage-window.png: the Manage Accounts window in the English UI.
-     Replace the Chinese screenshot below with it. -->
-<img src="screenshot/manage-window.png" alt="Manage accounts" width="560">
+<img src="screenshot/en/manage-window.png" alt="Manage accounts" width="560">
 
 ### Hotkey settings
 
@@ -63,9 +56,7 @@ The **Global Hotkeys** submenu sets the modifier keys used with 0–9: ⌃⌥⌘
 0.1.x (3/4/5 clash with the system screenshot shortcuts), ⌃⌥, or **Off**. The checkmark shows the
 current choice.
 
-<!-- SCREENSHOT screenshot/en/hotkeys.png: the Global Hotkeys submenu in the English UI. Replace
-     the Chinese screenshot below with it. -->
-<img src="screenshot/hotkeys.png" alt="Global hotkeys" width="640">
+<img src="screenshot/en/hotkeys.png" alt="Global hotkeys" width="640">
 
 ### Local HTTP API
 

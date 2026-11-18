@@ -24,28 +24,24 @@ macOS 菜单栏上的原生 Google Authenticator（谷歌身份验证器）。�
 
 点击菜单栏上的钥匙图标。第一行是验证码刷新的倒计时。每个账号显示为「名称: 验证码」，点击即可复制验证码。前 10 个账号右侧标出了对应的全局快捷键。列表下方依次是认证管理、HTTP 接口、全局快捷键、开机自动启动和检查更新。
 
-<!-- SCREENSHOT screenshot/menu.png：中文界面的菜单，用几个虚构的账号，要能看到「语言 / Language」「检查更新…」「每天自动检查更新」。直接覆盖这张图。 -->
 <img src="screenshot/menu.png" alt="菜单栏菜单" width="380">
 
 ### 添加账号
 
 选择「添加…」（⌘A），粘贴 `otpauth://` URL，或者点「从二维码图片识别…」选择一张二维码图片。标识会根据 URL 里的标签自动填写，添加前可以修改。
 
-<!-- SCREENSHOT screenshot/add-window.png：中文界面的「添加认证」窗口（按钮文字已改为「从二维码图片识别…」）。直接覆盖这张图。 -->
 <img src="screenshot/add-window.png" alt="添加账号" width="560">
 
 ### 管理账号
 
 「管理（排序 / 重命名）…」（⌘M）按菜单中的顺序列出所有账号。拖动或用上下箭头调整顺序，前 10 行会标出对应的快捷键。双击可以重命名；右键可以选择「重命名」「修改 URL」「删除」，底部也有同样的按钮。
 
-<!-- SCREENSHOT screenshot/manage-window.png：中文界面的「管理认证」窗口（按钮文字已改为「重命名…」等）。直接覆盖这张图。 -->
 <img src="screenshot/manage-window.png" alt="管理账号" width="560">
 
 ### 快捷键设置
 
 在「全局快捷键」子菜单里选择配合 0–9 使用的修饰键：⌃⌥⌘（默认）、⇧⌘（0.1.x 的方式，其中 3/4/5 和系统截图快捷键冲突）、⌃⌥，或者关闭。打勾的是当前设置。
 
-<!-- SCREENSHOT screenshot/hotkeys.png：中文界面的「全局快捷键」子菜单。直接覆盖这张图。 -->
 <img src="screenshot/hotkeys.png" alt="全局快捷键" width="640">
 
 ### 本地 HTTP 接口
