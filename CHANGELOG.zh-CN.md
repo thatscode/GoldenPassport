@@ -4,7 +4,7 @@
 
 本 fork 每个版本的主要变化。0.1.0 到 0.1.7 由原项目发布，见[原项目的 Releases](https://github.com/stanzhai/GoldenPassport/releases)。
 
-## 0.2.2（尚未发布）
+## 0.2.2（2026-11-20）
 
 ### 问题修复
 

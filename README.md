@@ -72,7 +72,9 @@ Compared with the original 0.1.7 release. The [changelog](CHANGELOG.md) lists th
 release.
 
 0.2.1 fixes the menu bar icon, which showed only a tiny figure, stops a second copy of the app
-from running next to the first, and moves to the bundle ID `com.thatscode.GoldenPassport`.
+from running next to the first, and moves to the bundle ID `com.thatscode.GoldenPassport`. 0.2.2
+keeps the menu bar icon where it was when you upgrade, so that it can't vanish from a crowded
+menu bar.
 
 ### New features
 

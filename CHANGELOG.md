@@ -5,7 +5,7 @@ English | [简体中文](CHANGELOG.zh-CN.md)
 Notable changes in each release of this fork. Versions 0.1.0 to 0.1.7 were released by the
 original project; see [its releases](https://github.com/stanzhai/GoldenPassport/releases).
 
-## 0.2.2 (unreleased)
+## 0.2.2 (2026-11-20)
 
 ### Fixes
 

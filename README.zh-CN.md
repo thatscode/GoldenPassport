@@ -54,7 +54,7 @@ macOS 菜单栏上的原生 Google Authenticator（谷歌身份验证器）。�
 
 以下对比的是原版最后一个版本 0.1.7。每个版本的变化见[更新日志](CHANGELOG.zh-CN.md)。
 
-0.2.1 修复了菜单栏图标只显示一个小人像的问题，不再允许同时运行两份 App，并把 Bundle ID 改为 `com.thatscode.GoldenPassport`。
+0.2.1 修复了菜单栏图标只显示一个小人像的问题，不再允许同时运行两份 App，并把 Bundle ID 改为 `com.thatscode.GoldenPassport`。0.2.2 升级时会保留菜单栏图标原来的位置，图标不会因为菜单栏太挤而消失。
 
 ### 新功能
 
