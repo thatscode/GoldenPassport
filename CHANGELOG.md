@@ -5,7 +5,7 @@ English | [简体中文](CHANGELOG.zh-CN.md)
 Notable changes in each release of this fork. Versions 0.1.0 to 0.1.7 were released by the
 original project; see [its releases](https://github.com/stanzhai/GoldenPassport/releases).
 
-## 0.2.0 (unreleased)
+## 0.2.0 (2026-11-20)
 
 A ground-up rewrite for current macOS and a drop-in upgrade for 0.1.x: same app, same bundle id,
 and your existing accounts are migrated automatically. The changes below are relative to 0.1.7,
@@ -59,6 +59,9 @@ see [Installation](README.md#installation).
 
 ### Security & privacy
 
+- Releases are **signed with a Developer ID and notarized by Apple**: they open without
+  Gatekeeper workarounds, and updates from the same developer keep their access to your
+  accounts in the Keychain without asking again.
 - Signed releases keep your accounts in the **login Keychain** instead of a plaintext file. Other
   apps can't read them without macOS asking you first, and copies of the data folder (installer
   backups, sync tools, unencrypted Time Machine backups) no longer carry your secrets. Builds you

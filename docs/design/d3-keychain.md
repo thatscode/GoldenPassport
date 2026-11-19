@@ -140,7 +140,7 @@ README 的「GoldenPassport 无法读取数据时」一节相应补充。
 
 4. **读不出来时的提示和重新迁移**（约 0.5 天）。**已完成**，见第 11 节。
 5. **三个脚本、README、安装说明、CHANGELOG 和兼容策略**（约 1 天）。**已完成**，见第 11 节。
-6. 用 Developer ID 签名的探针测试首次授权、更新后不弹框、拒绝授权、条目被删，然后发 beta.4 给内测同事（约 1 天）。
+6. 用 Developer ID 签名的探针测试首次授权、更新后不弹框、拒绝授权、条目被删，然后发 beta.4 给内测同事（约 1 天）。**已完成**，见第 11 节；不再单独发 beta.4，直接发布 0.2.0 正式版。
 
 合计约 5.5 天，和之前估计的 6–7 天大体一致。
 
@@ -206,3 +206,10 @@ README 的「GoldenPassport 无法读取数据时」一节相应补充。
     - 0.1.x → 钥匙串构建（英文）：从 `gp.secrets` 迁移；重装报告沿用已有数据。这次迁移时钥匙串里已有上一个场景留下的条目，按 5.2 另存为 `accounts.replaced-<时间>`。
     - 不用钥匙串的构建：安装和清理的输出与以前一致，`accounts.json` 保留。
     - 测试结束后删除了临时目录和测试用的钥匙串条目。
+- 2026-11-19，第 8 节第 6 步（Developer ID：`Developer ID Application: Yue Zhuo (928NN87B92)`）：
+  - 探针是两个 release 构建，`KEYCHAIN=1`，Bundle ID、数据目录、端口和 service 都是探针专用的，数据目录放两个假账号的 `accounts.json`。两个构建只差 `CFBundleVersion`，用同一个证书签名，所以 Team ID 相同、CDHash 不同，相当于同一个开发者发布的两个版本。
+  - 构建 A 运行 `--migrate-data`：`status=migrated`、`source=accounts.json`、`consistent=true`，没有弹框。条目的访问控制里信任的是 A 的指定要求（Bundle ID 加 Team ID `928NN87B92`），不是 CDHash；分区是 `teamid:928NN87B92`。
+  - 构建 B（相当于更新后的版本）读同一个条目：`already-migrated`、2 个账号、一致，没有弹框，用时约 0.03 秒。第 4 节说的「同一个 Team ID 签名的新版本可以直接读」成立。
+  - 对照：把 B 改成 ad-hoc 签名再读，系统弹出了授权框，说明这个测试能区分两种情况。拒绝授权、条目被删的处理已在第 4 步实测，和签名方式无关。
+  - 用 `xcodebuild -exportArchive` 公证时 Xcode 会重新签名，指定要求多了一个 App Store 证书的分支，但仍要求同一个 Bundle ID 和 Team ID，两种签名方式的构建互相满足对方的要求。
+  - 测试结束后删除了探针 App、数据目录和钥匙串条目。

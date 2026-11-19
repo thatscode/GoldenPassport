@@ -85,6 +85,7 @@ macOS 菜单栏上的原生 Google Authenticator（谷歌身份验证器）。�
 
 ### 安全与隐私
 
+- 正式版使用 **Developer ID 签名并经过 Apple 公证**：下载后可以直接打开，不用绕过 Gatekeeper；同一个开发者签名的后续更新可以直接读取钥匙串里的账号，不会再次询问。
 - 签名的正式版把账号存在**登录钥匙串**里，不再写明文文件。别的程序要读取时，系统会先弹框问你；数据目录被拷走、被同步工具带走，或出现在安装备份、未加密的时间机器备份里，都不会再带出密钥。自己构建的版本是 ad-hoc 签名，每次更新后系统都会重新询问钥匙串授权，所以默认仍用 `accounts.json`，除非构建时加上 `KEYCHAIN=1`。
 - 全新安装时 HTTP 接口默认关闭。它没有访问密码，开启期间，这台 Mac 上以你的身份运行的任何程序都能读取全部验证码。从 0.1.x 升级的用户保持原来的设置。
 - GoldenPassport 只在检查更新时联网，而且只在你要求时才检查：点「检查更新…」，或者打开「每天自动检查更新」（默认关闭）。检查时会向 GitHub 的接口查询最新版本；如果比当前版本新，还会下载这个版本附带的 `compat.json` 小文件。请求只以 `GoldenPassport/<版本号>` 标识自己，不带 Cookie，也不带任何账号信息。不会自动下载或安装新版本。
@@ -106,23 +107,17 @@ macOS 菜单栏上的原生 Google Authenticator（谷歌身份验证器）。�
 
 # 安装
 
-> [!IMPORTANT]
-> **目前还没有发布安装包。** 第一个正式版会在完成 Apple 公证后发布。在那之前，请按下面的步骤从源码构建，得到的 App 和正式版相同，只是自己构建的版本把账号存在 `accounts.json` 里，而不是钥匙串（见[数据与安全](#数据与安全)）。
+正式版使用 Developer ID 签名并经过 Apple 公证，下载后可以像其他 App 一样直接打开。
 
 > [!NOTE]
-> 目前的安装包**还没有经过 Apple 公证**，从网上下载后直接打开会被 macOS 拦截。下面的安装脚本会帮你处理好。Apple 公证和 Homebrew cask 都在[后续计划](#后续计划)中。现在执行 `brew install --cask goldenpassport` 装的是旧版 0.1.7，而且这个 cask 已被 Homebrew 禁用。
+> 现在执行 `brew install --cask goldenpassport` 装的是旧版 0.1.7，而且这个 cask 已被 Homebrew 禁用。恢复 Homebrew cask 在[后续计划](#后续计划)中。
 
 ### 从 0.1.x 升级，或全新安装（推荐）
 
-1. 从源码构建安装包（需要 Xcode 16 或更高版本，见[从源码构建](#从源码构建)）：
-   ```sh
-   git clone https://github.com/thatscode/GoldenPassport.git
-   cd GoldenPassport
-   make beta
-   ```
-   会生成 `~/Library/Caches/GoldenPassport-build/dist/GoldenPassport-<版本号>-beta.zip`，里面有 App、`install.sh`、`rollback.sh` 和 `cleanup.sh`。把它解压。
-   （正式版发布后，改为从本仓库的 [Releases](https://github.com/thatscode/GoldenPassport/releases) 页面下载 `GoldenPassport-<版本号>.zip`。）
+1. 从[最新的 Release](https://github.com/thatscode/GoldenPassport/releases/latest) 下载 `GoldenPassport-<版本号>.zip` 并解压。解压出的文件夹里有 App、`install.sh`、`rollback.sh`、`cleanup.sh` 和安装说明（`安装说明.md`、`INSTALL.md`）。
 2. 打开「终端」，输入 `bash `（注意后面有一个空格），把解压出来的 `install.sh` 拖进终端窗口，按回车。
+
+也可以自己从源码构建安装包：执行 `make package`（见[从源码构建](#从源码构建)）。自己构建的版本是 ad-hoc 签名，账号存在 `accounts.json` 里，而不是钥匙串（见[数据与安全](#数据与安全)）。
 
 安装脚本会依次：
 
@@ -135,7 +130,7 @@ macOS 菜单栏上的原生 Google Authenticator（谷歌身份验证器）。�
 <!-- SCREENSHOT install.png：install.sh 运行成功后的终端输出，包含「已从旧版迁移 N 条记录…逐条一致」那一行和警告框。 -->
 <!-- ![安装脚本输出](screenshot/install.png) -->
 
-升级之后，如果希望快捷键自动填入验证码，需要重新授权**辅助功能**：系统设置 → 隐私与安全性 → 辅助功能。如果列表里已经有 GoldenPassport，但按快捷键不会自动填入，先用「−」把它删掉，再到菜单里重新选一次快捷键，系统就会重新请求授权。没授权时，按快捷键会把验证码复制到剪贴板。
+从 0.1.x 或 0.2.0 内测版升级之后，如果希望快捷键自动填入验证码，需要重新授权**辅助功能**：系统设置 → 隐私与安全性 → 辅助功能。如果列表里已经有 GoldenPassport，但按快捷键不会自动填入，先用「−」把它删掉，再到菜单里重新选一次快捷键，系统就会重新请求授权。没授权时，按快捷键会把验证码复制到剪贴板。
 
 ### 回退
 
@@ -151,7 +146,7 @@ macOS 菜单栏上的原生 Google Authenticator（谷歌身份验证器）。�
 
 ### 手动安装
 
-把 `GoldenPassport.app` 复制到「应用程序」，然后二选一：执行 `xattr -dr com.apple.quarantine /Applications/GoldenPassport.app`；或者先打开一次，再到 系统设置 → 隐私与安全性 里点「仍要打开」。首次启动时会自动迁移数据，但手动安装没有备份，也没有迁移核对。
+把 `GoldenPassport.app` 复制到「应用程序」，然后打开它。首次启动时会自动迁移数据，但手动安装没有备份，也没有迁移核对。
 
 # 使用
 
@@ -253,7 +248,6 @@ make beta      # 同上，标为预发布版「beta」
 
 # 后续计划
 
-- Developer ID 签名和 Apple 公证，下载后可以直接打开；钥匙串存储也随之启用
 - 恢复 Homebrew cask
 
 # 致谢与协议

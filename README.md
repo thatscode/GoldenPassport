@@ -119,6 +119,9 @@ Compared with the original 0.1.7 release.
 
 ### Security & privacy
 
+- Releases are **signed with a Developer ID and notarized by Apple**: they open without
+  Gatekeeper workarounds, and updates from the same developer keep their access to your
+  accounts in the Keychain without asking again.
 - Signed releases keep your accounts in the **login Keychain** instead of a plaintext file. Other
   apps can't read them without macOS asking you first, and copies of the data folder (installer
   backups, sync tools, unencrypted Time Machine backups) no longer carry your secrets. Builds you
@@ -151,32 +154,25 @@ Compared with the original 0.1.7 release.
 
 # Installation
 
-> [!IMPORTANT]
-> **No release has been published yet.** The first release will follow once builds are notarized
-> by Apple. Until then, build the package from source as shown below. It holds the same app a
-> release will contain, except that a build you make yourself keeps your accounts in
-> `accounts.json` rather than the Keychain (see [Data & security](#data--security)).
+Releases are signed with a Developer ID and notarized by Apple, so they open like any other
+downloaded app.
 
 > [!NOTE]
-> Builds are **not yet notarized by Apple**, so macOS blocks them when opened from a download.
-> The installer below handles this for you. Notarized releases and the Homebrew cask are on the
-> [roadmap](#roadmap). `brew install --cask goldenpassport` installs the old 0.1.7 and is
-> currently disabled by Homebrew.
+> `brew install --cask goldenpassport` installs the old 0.1.7 and is currently disabled by
+> Homebrew. Bringing the cask back is on the [roadmap](#roadmap).
 
 ### Upgrading from 0.1.x, or installing fresh (recommended)
 
-1. Build the package (requires Xcode 16 or later, see [Building](#building)):
-   ```sh
-   git clone https://github.com/thatscode/GoldenPassport.git
-   cd GoldenPassport
-   make beta
-   ```
-   This creates `~/Library/Caches/GoldenPassport-build/dist/GoldenPassport-<version>-beta.zip`
-   containing the app, `install.sh`, `rollback.sh` and `cleanup.sh`. Unzip it.
-   (Once releases are published, download `GoldenPassport-<version>.zip` from the
-   [releases](https://github.com/thatscode/GoldenPassport/releases) page instead.)
+1. Download `GoldenPassport-<version>.zip` from the
+   [latest release](https://github.com/thatscode/GoldenPassport/releases/latest) and unzip it.
+   The folder holds the app, `install.sh`, `rollback.sh`, `cleanup.sh` and the install notes
+   (`INSTALL.md`, `安装说明.md`).
 2. In Terminal, run `bash `, drag `install.sh` from the unzipped folder into the window and
    press Return.
+
+To build the package from source instead, run `make package` (see [Building](#building)). A build
+you make yourself is ad-hoc signed and keeps your accounts in `accounts.json` rather than the
+Keychain (see [Data & security](#data--security)).
 
 The installer:
 
@@ -194,7 +190,8 @@ The installer:
      Crop out your username/paths if you prefer. -->
 <!-- ![Installer output](screenshot/install.png) -->
 
-After upgrading, grant **Accessibility** again if you want hotkeys to type the code for you:
+After upgrading from 0.1.x or a 0.2.0 beta, grant **Accessibility** again if you want hotkeys to
+type the code for you:
 System Settings → Privacy & Security → Accessibility. If GoldenPassport is already listed but
 typing doesn't work, remove it with "−" and pick a hotkey option in the menu again to get a
 fresh prompt. Without the permission, hotkeys copy the code to the clipboard.
@@ -233,9 +230,7 @@ possible.
 
 ### Manual installation
 
-Copy `GoldenPassport.app` to `/Applications`, then either run
-`xattr -dr com.apple.quarantine /Applications/GoldenPassport.app` or open it once and choose
-"Open Anyway" in System Settings → Privacy & Security. Your data is migrated on first launch,
+Copy `GoldenPassport.app` to `/Applications` and open it. Your data is migrated on first launch,
 but you get no backup and no migration check.
 
 # Usage
@@ -409,8 +404,6 @@ cleanly. Tester instructions
 
 # Roadmap
 
-- Developer ID signing and notarization, so downloads open without workarounds; this also turns
-  on the Keychain storage
 - Bring the Homebrew cask back
 
 # Credits & license
