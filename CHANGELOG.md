@@ -5,6 +5,19 @@ English | [简体中文](CHANGELOG.zh-CN.md)
 Notable changes in each release of this fork. Versions 0.1.0 to 0.1.7 were released by the
 original project; see [its releases](https://github.com/stanzhai/GoldenPassport/releases).
 
+## 0.2.1 (unreleased)
+
+### Fixes
+
+- The menu bar icon showed only a tiny figure: the key around it was missing, because macOS
+  doesn't draw the mask the icon used. The full key is back, as large as other menu bar icons.
+- Opening a second copy of GoldenPassport, for example the one in the download folder while the
+  installed one runs, now says that GoldenPassport is already running and quits. Two copies used
+  to show two menu bar icons, compete for the hotkeys and the HTTP port, and could save over each
+  other's changes to your accounts.
+- `install.sh` and `rollback.sh` also quit GoldenPassport when it runs from another folder, so
+  that only the installed copy runs afterwards.
+
 ## 0.2.0 (2026-11-20)
 
 A ground-up rewrite for current macOS and a drop-in upgrade for 0.1.x: same app, same bundle id,

@@ -59,15 +59,22 @@ describe_app() {
   fi
 }
 
-# Quits only processes running from $1, so a test install never touches the real app.
+# The GoldenPassport processes to quit: the one running from $1 and, when installing into the real
+# /Applications, every other copy too (one opened from the download folder, for example), which
+# would otherwise keep running next to the new version. A test install only touches its own app.
+app_pids() {
+  { pgrep -f "^$1/Contents/MacOS/" || true
+    [ "$APPS_DIR" != /Applications ] || pgrep -x GoldenPassport || true; } | sort -u
+}
+
 quit_app() {
   local app="$1" pids i
-  pids="$(pgrep -f "^$app/Contents/MacOS/" || true)"
+  pids="$(app_pids "$app")"
   [ -n "$pids" ] || return 0
   info "正在退出运行中的 GoldenPassport (pid $(echo $pids))" "Quitting the running GoldenPassport (pid $(echo $pids))"
   kill -TERM $pids 2>/dev/null || true
   for i in 1 2 3 4 5 6 7 8 9 10; do
-    pgrep -f "^$app/Contents/MacOS/" >/dev/null || return 0
+    [ -n "$(app_pids "$app")" ] || return 0
     sleep 0.5
   done
   kill -KILL $pids 2>/dev/null || true

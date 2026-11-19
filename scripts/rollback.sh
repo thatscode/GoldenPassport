@@ -94,11 +94,17 @@ else
 fi
 
 step "退出 GoldenPassport" "Quitting GoldenPassport"
-pids="$(pgrep -f "^$TARGET/Contents/MacOS/" || true)"
+# The copy in $TARGET and, for the real /Applications, every other running copy (one opened from
+# the download folder, for example), so that only the restored app runs afterwards.
+app_pids() {
+  { pgrep -f "^$TARGET/Contents/MacOS/" || true
+    [ "$APPS_DIR" != /Applications ] || pgrep -x GoldenPassport || true; } | sort -u
+}
+pids="$(app_pids)"
 if [ -n "$pids" ]; then
   kill -TERM $pids 2>/dev/null || true
   for i in 1 2 3 4 5 6 7 8 9 10; do
-    pgrep -f "^$TARGET/Contents/MacOS/" >/dev/null || break
+    [ -n "$(app_pids)" ] || break
     sleep 0.5
   done
   kill -KILL $pids 2>/dev/null || true

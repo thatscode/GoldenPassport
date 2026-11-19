@@ -39,6 +39,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.mainMenu = makeMainMenu()
 
+        // A second copy (say, one opened from the download folder while the installed one runs)
+        // would add a second menu bar icon, fight over the hotkeys and the HTTP port, and save its
+        // own account list over the other's. Stop before touching any data.
+        if let other = otherRunningCopy() {
+            showAlreadyRunning(other)
+            NSApp.terminate(nil)
+            return
+        }
+
         let environment = AppEnvironment.fromBundle()
         guard let store = openAccountStore(environment) else {
             NSApp.terminate(nil)
@@ -49,6 +58,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             settings: SettingsStore(directory: environment.dataDirectory, defaults: environment.defaults),
             dataDirectory: environment.dataDirectory,
             dataFormat: environment.dataFormat)
+    }
+
+    /// Another running copy of this app: the same bundle id (0.1.x has it too), another process.
+    private func otherRunningCopy() -> NSRunningApplication? {
+        guard let bundleID = Bundle.main.bundleIdentifier else { return nil }
+        let me = ProcessInfo.processInfo.processIdentifier
+        return NSRunningApplication.runningApplications(withBundleIdentifier: bundleID)
+            .first { $0.processIdentifier != me && !$0.isTerminated }
+    }
+
+    private func showAlreadyRunning(_ other: NSRunningApplication) {
+        let alert = NSAlert()
+        alert.messageText = String(localized: "GoldenPassport 已经在运行")
+        var text = String(localized: "请使用菜单栏里正在运行的那一份。为了避免两份同时修改你的账号，这一份不会启动。如果想改用这一份，先在菜单栏里退出正在运行的那一份，再重新打开这一份。")
+        // A copy opened straight from a download runs from a random AppTranslocation path,
+        // which would only confuse.
+        if let path = other.bundleURL?.path, !path.contains("/AppTranslocation/") {
+            text += "\n\n" + String(localized: "正在运行的是：\(path)")
+        }
+        alert.informativeText = text
+        alert.addButton(withTitle: String(localized: "好"))
+        activateApp()
+        alert.runModal()
     }
 
     /// Prepares the data directory and opens the accounts. When the Keychain can't be read,
