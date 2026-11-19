@@ -7,10 +7,11 @@ enum GoldenPassportApp {
         if CommandLine.arguments.contains("--migrate-data") {
             exit(runMigrateData(Array(CommandLine.arguments.dropFirst())))
         }
-        // The language chosen in the menu lives in the defaults of the bundle id; carry it over
-        // from the old one (0.1.x, 0.2.0) before anything is localized.
+        // The language chosen in the menu and the menu bar icon's position live in the defaults of
+        // the bundle id; carry them over from the old one (0.1.x, 0.2.0) before anything is
+        // localized and before the status item is created.
         if let legacyID = legacyBundleIdentifier, let bundleID = Bundle.main.bundleIdentifier {
-            LegacyPreferences.carryOver(["AppleLanguages"], from: legacyID, to: bundleID)
+            LegacyPreferences.carryOver(from: legacyID, to: bundleID)
         }
         let app = NSApplication.shared
         let delegate = AppDelegate()

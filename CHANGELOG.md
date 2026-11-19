@@ -5,6 +5,16 @@ English | [简体中文](CHANGELOG.zh-CN.md)
 Notable changes in each release of this fork. Versions 0.1.0 to 0.1.7 were released by the
 original project; see [its releases](https://github.com/stanzhai/GoldenPassport/releases).
 
+## 0.2.2 (unreleased)
+
+### Fixes
+
+- After upgrading from 0.2.0 to 0.2.1, the menu bar icon could be missing, and menu bar managers
+  such as Bartender couldn't find it. Under the new bundle ID the icon had lost its saved
+  position, so macOS put it at the far left of the menu bar icons, where a crowded menu bar next
+  to the notch had no room for it. The position and visibility that 0.2.0 saved now carry over,
+  also on Macs that already run 0.2.1.
+
 ## 0.2.1 (2026-11-20)
 
 ### Changes
