@@ -7,6 +7,19 @@ original project; see [its releases](https://github.com/stanzhai/GoldenPassport/
 
 ## 0.2.1 (unreleased)
 
+### Changes
+
+- **New bundle ID**: `com.thatscode.GoldenPassport` (0.1.x and 0.2.0 used
+  `site.stanzhai.GoldenPassport`), so menu bar managers such as Bartender show this fork's name.
+  Your accounts, settings and data folder stay where they are, and the language you picked in the
+  menu is carried over. Because macOS sees a new app:
+  - when you upgrade from 0.2.0, macOS asks once whether GoldenPassport may use your keychain:
+    choose **Always Allow**, which asks for your login password;
+  - grant **Accessibility** again if you want hotkeys to type the code (System Settings → Privacy
+    & Security → Accessibility; remove the old GoldenPassport entry with "−" first);
+  - turn **Launch at Login** on again in the menu if you used it. If System Settings → General →
+    Login Items still lists an old GoldenPassport entry, remove it there.
+
 ### Fixes
 
 - The menu bar icon showed only a tiny figure: the key around it was missing, because macOS

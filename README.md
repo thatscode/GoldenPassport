@@ -7,7 +7,7 @@ A native Google Authenticator for the macOS menu bar: TOTP codes one click (or o
 > **This is a maintained fork of [stanzhai/GoldenPassport](https://github.com/stanzhai/GoldenPassport).**
 > The original project has been inactive since 2022 and its Homebrew cask was disabled in
 > September 2026. Version 0.2.0 here is a ground-up rewrite for current macOS and a drop-in
-> upgrade for 0.1.x users: same app, same bundle id, your existing accounts are migrated
+> upgrade for 0.1.x users: same app, same data folder, your existing accounts are migrated
 > automatically. All credit for the original idea and design goes to
 > [StanZhai](https://github.com/stanzhai).
 
@@ -330,7 +330,8 @@ as above.
 The alert says why, and nothing is changed:
 
 - **Access was denied**: you clicked Deny when macOS asked. Click Retry and choose Always Allow.
-  macOS asks again after an update signed by a different developer.
+  macOS asks again after an update that changes how it identifies the app: a different developer's
+  signature, or a new bundle ID (0.2.1 has one).
 - **The keychain is locked**: unlock the login keychain in Keychain Access, then click Retry.
 - **The item is missing**, because it was deleted in Keychain Access or only the data folder was
   copied to this Mac: if the data folder still has `accounts.json` or `gp.secrets`, GoldenPassport

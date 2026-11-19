@@ -15,18 +15,27 @@
 # Environment overrides (for testing): GP_BACKUP_ROOT, GP_NO_LAUNCH=1, GP_LANG=zh-Hans|en.
 set -euo pipefail
 
-BUNDLE_ID="site.stanzhai.GoldenPassport"
+# 0.2.1 moved the bundle id; 0.1.x and 0.2.0 used the old one.
+BUNDLE_ID="com.thatscode.GoldenPassport"
+LEGACY_BUNDLE_ID="site.stanzhai.GoldenPassport"
 BACKUP_ROOT="${GP_BACKUP_ROOT:-$HOME/GoldenPassport-backups}"
 
 # The app's own language setting (menu: 语言 / Language), else the system's preferred
-# languages, matched by macOS exactly as it does for the app.
+# languages, matched by macOS exactly as it does for the app. 0.1.x and 0.2.0 kept the setting
+# under the old bundle id; 0.2.1 carries it over once (GPLegacyPreferencesCarriedOver).
 ui_language() {
   osascript -l JavaScript -e '
     ObjC.import("Foundation");
     function run(argv) {
-      var languages = $.NSUserDefaults.alloc.initWithSuiteName(argv[0]).objectForKey("AppleLanguages");
+      var defaults = $.NSUserDefaults.standardUserDefaults, languages;
+      for (var i = 0; i < argv.length; i++) {
+        var domain = ObjC.deepUnwrap(defaults.persistentDomainForName(argv[i])) || {};
+        if (domain.AppleLanguages) { languages = $(domain.AppleLanguages); break; }
+        if (domain.GPLegacyPreferencesCarriedOver) break;
+      }
+      if (!languages) languages = defaults.objectForKey("AppleLanguages");
       return ObjC.unwrap($.NSBundle.preferredLocalizationsFromArrayForPreferences($(["en", "zh-Hans"]), languages).firstObject);
-    }' "$BUNDLE_ID" 2>/dev/null || echo en
+    }' "$BUNDLE_ID" "$LEGACY_BUNDLE_ID" 2>/dev/null || echo en
 }
 UI_LANG="${GP_LANG:-$(ui_language)}"
 # say ZH EN prints the message in the UI language; a single argument is printed as is.

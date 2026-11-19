@@ -10,7 +10,7 @@ GoldenPassport 保存的是 MFA 密钥。数据一旦丢失，用户可能被锁
 
 | 对象 | 位置 / 形式 | 谁会读 | 当前格式 |
 |---|---|---|---|
-| 账号数据（格式 2） | 登录钥匙串里的通用密码条目：service 取自 Info.plist 的 `GPKeychainService`（正式版 `site.stanzhai.GoldenPassport`），account 为 `accounts` | 设置了 `GPKeychainService` 的构建（签名的正式版） | **数据格式 2**：`{"formatVersion": 2, "accounts": [{id, name, url}]}`，见 [D3 设计](design/d3-keychain.md) |
+| 账号数据（格式 2） | 登录钥匙串里的通用密码条目：service 取自 Info.plist 的 `GPKeychainService`（正式版 `site.stanzhai.GoldenPassport`；0.2.1 改了 bundle id，service 名不变），account 为 `accounts` | 设置了 `GPKeychainService` 的构建（签名的正式版） | **数据格式 2**：`{"formatVersion": 2, "accounts": [{id, name, url}]}`，见 [D3 设计](design/d3-keychain.md) |
 | 格式 2 的标记文件 | 数据目录 `accounts-v2.json` | 格式 2 的构建、`rollback.sh`、`cleanup.sh`；不用钥匙串的构建看到它就停下 | JSON `{formatVersion: 2, storage: "keychain", service, migratedFrom, migratedAt}`，全新安装没有 `migratedFrom`；不含密钥和账号名称 |
 | 账号数据（格式 1） | 数据目录 `accounts.json` | 内测版和没有设置 `GPKeychainService` 的构建；格式 2 的迁移逻辑 | **数据格式 1**：JSON 数组，元素为 `{id, name, url}`。格式 2 的构建从不修改它 |
 | 设置 | 数据目录 `settings.json` | 0.2.x 各版本 | JSON 对象，所有字段可选 |
@@ -20,7 +20,7 @@ GoldenPassport 保存的是 MFA 密钥。数据一旦丢失，用户可能被锁
 | URL 列表导出 | 用户保存的 `.txt` | 任何支持 otpauth 的验证器 | 每行一条 otpauth URL |
 | HTTP 接口 | `GET /`、`GET /code/<名称>` | 用户脚本、浏览器 | `/code/` 返回纯文本验证码；找不到时返回 404 |
 | 发布信息 | GitHub Release 的 tag 和附件 `compat.json` | 0.2.0 起各版本的「检查更新」 | 见第 5 节 |
-| 数据目录与 bundle id | `~/Library/Application Support/GoldenPassport`、`site.stanzhai.GoldenPassport` | 所有版本、安装脚本 | 保持不变 |
+| 数据目录与 bundle id | 数据目录 `~/Library/Application Support/GoldenPassport`；bundle id 0.1.x、0.2.0 为 `site.stanzhai.GoldenPassport`，0.2.1 起为 `com.thatscode.GoldenPassport`（Info.plist 的 `GPLegacyBundleIdentifier` 记着旧的） | 所有版本、安装脚本 | 数据目录保持不变。bundle id 只在 0.2.1 改过一次：钥匙串 service 沿用旧名，菜单里选的语言从旧 bundle id 的偏好设置搬过来（只搬一次），重复运行检查和脚本同时认新旧两个 bundle id；钥匙串授权、辅助功能、开机自启需要用户重新确认（见 CHANGELOG） |
 
 `--migrate-data` 的输出只给**同一个安装包**里的 `install.sh` 使用，两者总是一起发布，所以不属于跨版本契约。
 

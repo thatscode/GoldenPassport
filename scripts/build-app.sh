@@ -22,12 +22,17 @@ if [ "$SIGN_IDENTITY" = "-" ]; then KEYCHAIN="${KEYCHAIN:-0}"; else KEYCHAIN="${
 VERSION="$(cat "$ROOT/VERSION")"
 BUILD_NUMBER="$(git -C "$ROOT" rev-list --count HEAD 2>/dev/null || echo 1)"
 
+# 0.2.1 moved the bundle id from site.stanzhai.* (0.1.x, 0.2.0) to com.thatscode.*. The Keychain
+# service keeps the old name, so the accounts stay where they are, and the app carries over the
+# settings kept under the old id (GPLegacyBundleIdentifier).
 case "$VARIANT" in
   dev)
-    APP_NAME="GoldenPassport Dev"; EXECUTABLE="GoldenPassport Dev"; BUNDLE_ID="site.stanzhai.GoldenPassport.dev"
+    APP_NAME="GoldenPassport Dev"; EXECUTABLE="GoldenPassport Dev"; BUNDLE_ID="com.thatscode.GoldenPassport.dev"
+    LEGACY_BUNDLE_ID="site.stanzhai.GoldenPassport.dev"
     DATA_DIR="GoldenPassport-Dev"; SEED_DIR="GoldenPassport"; PORT=17305; HOTKEYS=false ;;
   release)
-    APP_NAME="GoldenPassport"; EXECUTABLE="GoldenPassport"; BUNDLE_ID="site.stanzhai.GoldenPassport"
+    APP_NAME="GoldenPassport"; EXECUTABLE="GoldenPassport"; BUNDLE_ID="com.thatscode.GoldenPassport"
+    LEGACY_BUNDLE_ID="site.stanzhai.GoldenPassport"
     DATA_DIR="GoldenPassport"; SEED_DIR=""; PORT=17304; HOTKEYS=true ;;
   *) echo "usage: $0 dev|release" >&2; exit 1 ;;
 esac
@@ -91,6 +96,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 	<key>CFBundleExecutable</key><string>$EXECUTABLE</string>
 	<key>CFBundleIconFile</key><string>AppIcon</string>
 	<key>CFBundleIdentifier</key><string>$BUNDLE_ID</string>
+	<key>GPLegacyBundleIdentifier</key><string>$LEGACY_BUNDLE_ID</string>
 	<key>CFBundleInfoDictionaryVersion</key><string>6.0</string>
 	<key>CFBundleName</key><string>$APP_NAME</string>
 	<key>CFBundleDisplayName</key><string>$APP_NAME</string>
@@ -111,8 +117,10 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 PLIST
 [ -z "$ICON_NAME" ] || /usr/libexec/PlistBuddy -c "Add :CFBundleIconName string $ICON_NAME" "$APP/Contents/Info.plist"
 [ -z "$PRERELEASE" ] || /usr/libexec/PlistBuddy -c "Add :GPPrerelease string $PRERELEASE" "$APP/Contents/Info.plist"
-# The Dev build keeps its own Keychain item, as it keeps its own data folder.
-[ "$KEYCHAIN" != 1 ] || /usr/libexec/PlistBuddy -c "Add :GPKeychainService string $BUNDLE_ID" "$APP/Contents/Info.plist"
+# The Dev build keeps its own Keychain item, as it keeps its own data folder. Both keep the
+# service name of the old bundle id: renaming it would strand the accounts already stored.
+KEYCHAIN_SERVICE="$LEGACY_BUNDLE_ID"
+[ "$KEYCHAIN" != 1 ] || /usr/libexec/PlistBuddy -c "Add :GPKeychainService string $KEYCHAIN_SERVICE" "$APP/Contents/Info.plist"
 
 xattr -cr "$APP"
 if [ "$SIGN_IDENTITY" = "-" ]; then
@@ -124,4 +132,4 @@ codesign --verify --strict "$APP"
 
 echo "Built $APP"
 echo "  archs: $(lipo -archs "$APP/Contents/MacOS/$EXECUTABLE")  version: $VERSION${PRERELEASE:+-$PRERELEASE} ($BUILD_NUMBER)  bundle id: $BUNDLE_ID"
-echo "  accounts: $([ "$KEYCHAIN" = 1 ] && echo "login Keychain ($BUNDLE_ID)" || echo accounts.json)  signed: $([ "$SIGN_IDENTITY" = - ] && echo ad hoc || echo "$SIGN_IDENTITY")"
+echo "  accounts: $([ "$KEYCHAIN" = 1 ] && echo "login Keychain ($KEYCHAIN_SERVICE)" || echo accounts.json)  signed: $([ "$SIGN_IDENTITY" = - ] && echo ad hoc || echo "$SIGN_IDENTITY")"

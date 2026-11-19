@@ -7,6 +7,11 @@ enum GoldenPassportApp {
         if CommandLine.arguments.contains("--migrate-data") {
             exit(runMigrateData(Array(CommandLine.arguments.dropFirst())))
         }
+        // The language chosen in the menu lives in the defaults of the bundle id; carry it over
+        // from the old one (0.1.x, 0.2.0) before anything is localized.
+        if let legacyID = legacyBundleIdentifier, let bundleID = Bundle.main.bundleIdentifier {
+            LegacyPreferences.carryOver(["AppleLanguages"], from: legacyID, to: bundleID)
+        }
         let app = NSApplication.shared
         let delegate = AppDelegate()
         app.delegate = delegate
@@ -43,7 +48,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // would add a second menu bar icon, fight over the hotkeys and the HTTP port, and save its
         // own account list over the other's. Stop before touching any data.
         if let other = otherRunningCopy() {
-            showAlreadyRunning(other)
+            // The same app started twice (say, by two login items) just stops; another copy says so.
+            if other.bundleURL?.standardizedFileURL != Bundle.main.bundleURL.standardizedFileURL {
+                showAlreadyRunning(other)
+            }
             NSApp.terminate(nil)
             return
         }
@@ -60,11 +68,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             dataFormat: environment.dataFormat)
     }
 
-    /// Another running copy of this app: the same bundle id (0.1.x has it too), another process.
+    /// Another running copy of this app, under this bundle id or the one 0.1.x and 0.2.0 used.
     private func otherRunningCopy() -> NSRunningApplication? {
-        guard let bundleID = Bundle.main.bundleIdentifier else { return nil }
         let me = ProcessInfo.processInfo.processIdentifier
-        return NSRunningApplication.runningApplications(withBundleIdentifier: bundleID)
+        return [Bundle.main.bundleIdentifier, legacyBundleIdentifier].compactMap { $0 }
+            .flatMap { NSRunningApplication.runningApplications(withBundleIdentifier: $0) }
             .first { $0.processIdentifier != me && !$0.isTerminated }
     }
 
@@ -226,6 +234,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return main
     }
 }
+
+/// The bundle id 0.1.x and 0.2.0 used (Info.plist GPLegacyBundleIdentifier, scripts/build-app.sh).
+let legacyBundleIdentifier = (Bundle.main.object(forInfoDictionaryKey: "GPLegacyBundleIdentifier") as? String)
+    .flatMap { $0.isEmpty ? nil : $0 }
 
 /// The README on GitHub in the language the UI is using, optionally at one of its sections.
 func readmeURL(section: (english: String, chinese: String)? = nil) -> URL {

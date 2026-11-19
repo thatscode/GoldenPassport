@@ -20,7 +20,9 @@
 # GP_BACKUP_ROOT, GP_NO_LAUNCH=1, GP_LANG=zh-Hans|en.
 set -euo pipefail
 
-BUNDLE_ID="site.stanzhai.GoldenPassport"
+# 0.2.1 moved the bundle id; 0.1.x and 0.2.0 used the old one.
+BUNDLE_ID="com.thatscode.GoldenPassport"
+LEGACY_BUNDLE_ID="site.stanzhai.GoldenPassport"
 APPS_DIR="${GP_APPLICATIONS_DIR:-/Applications}"
 DATA_DIR="${GP_DATA_DIR:-$HOME/Library/Application Support/GoldenPassport}"
 BACKUP_ROOT="${GP_BACKUP_ROOT:-$HOME/GoldenPassport-backups}"
@@ -28,14 +30,21 @@ TARGET="$APPS_DIR/GoldenPassport.app"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 # The app's own language setting (menu: 语言 / Language), else the system's preferred
-# languages, matched by macOS exactly as it does for the app.
+# languages, matched by macOS exactly as it does for the app. 0.1.x and 0.2.0 kept the setting
+# under the old bundle id; 0.2.1 carries it over once (GPLegacyPreferencesCarriedOver).
 ui_language() {
   osascript -l JavaScript -e '
     ObjC.import("Foundation");
     function run(argv) {
-      var languages = $.NSUserDefaults.alloc.initWithSuiteName(argv[0]).objectForKey("AppleLanguages");
+      var defaults = $.NSUserDefaults.standardUserDefaults, languages;
+      for (var i = 0; i < argv.length; i++) {
+        var domain = ObjC.deepUnwrap(defaults.persistentDomainForName(argv[i])) || {};
+        if (domain.AppleLanguages) { languages = $(domain.AppleLanguages); break; }
+        if (domain.GPLegacyPreferencesCarriedOver) break;
+      }
+      if (!languages) languages = defaults.objectForKey("AppleLanguages");
       return ObjC.unwrap($.NSBundle.preferredLocalizationsFromArrayForPreferences($(["en", "zh-Hans"]), languages).firstObject);
-    }' "$BUNDLE_ID" 2>/dev/null || echo en
+    }' "$BUNDLE_ID" "$LEGACY_BUNDLE_ID" 2>/dev/null || echo en
 }
 UI_LANG="${GP_LANG:-$(ui_language)}"
 # say ZH EN prints the message in the UI language; a single argument is printed as is.
@@ -99,7 +108,7 @@ SOURCE="$(cd "$SOURCE" && pwd)"
 [ "$SOURCE" != "$TARGET" ] || die "安装包就是已安装的 App，请指定新下载的 GoldenPassport.app" \
   "That is the installed app itself. Point to the GoldenPassport.app you downloaded"
 
-[ "$(plist_value "$SOURCE" CFBundleIdentifier)" = "$BUNDLE_ID" ] \
+case "$(plist_value "$SOURCE" CFBundleIdentifier)" in "$BUNDLE_ID"|"$LEGACY_BUNDLE_ID") ;; *) false ;; esac \
   || die "不是 GoldenPassport 正式版安装包（Bundle ID 不符）" "Not a GoldenPassport release package (wrong bundle ID)"
 [ -n "$(plist_value "$SOURCE" GPDataDirectoryName)" ] \
   || die "这是 0.1.x 旧版安装包，回退请用 rollback.sh" "This is a 0.1.x package. To go back to 0.1.x, use rollback.sh"
