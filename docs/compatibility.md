@@ -162,7 +162,7 @@ GoldenPassport 保存的是 MFA 密钥。数据一旦丢失，用户可能被锁
 | I1 | **启动失败提示更明确**：说明文件没有被改动、为什么不启动，提供「在 Finder 中显示」和帮助链接。帮助里写清楚恢复方法：用备份里的 `accounts.json` 替换，或者导入之前导出的文件。**不要建议 `rollback.sh --restore-data`**：它会把 App 降回安装前的版本，并把整个数据目录恢复到安装前，之后的改动全部丢失 | 正式发布前 | 已完成（README「GoldenPassport 无法读取数据时」） |
 | I2 | **`AccountStore` 自身不再把读不懂的文件当成空列表**，改为抛出错误。启动检查已经能拦住这种情况，这一条是额外的保险，防止以后有代码绕过启动检查直接创建 `AccountStore` | 正式发布前 | 已完成 |
 | I3 | 「检查更新」读取 `compat.json`，按第 5 节的规则提示（D2 的一部分） | D2 | 已完成（`UpdateChecker`，测试见 `UpdateCheckTests`） |
-| I4 | 发布流程（C3）加上第 6 节的检查清单；第一个 Release 附带 `compat.json`（`dataFormat: 2`，D3 决策 1） | C3 | 待实施 |
+| I4 | 发布流程（C3）加上第 6 节的检查清单；第一个 Release 附带 `compat.json`（`dataFormat: 2`，D3 决策 1） | C3 | 已完成（2026-11-20 发布 v0.2.0 前逐项核对，Release 附带 `compat.json`：`{"dataFormat": 2, "minUpgradeFrom": null}`） |
 | I5 | 出现新格式文件后，`rollback.sh` 给出 3.3 的提醒 | 第一次不可逆变更时（D3） | 已完成（D3 第 5 步：账号存进钥匙串后，回退到不用钥匙串的版本时提醒） |
 | I6 | **发现旧版本在迁移之后改过数据时，提醒用户**（3.3 的反方向）：迁移时记下 `gp.secrets` 的基线（名称和 URL 指纹）；启动时比对，列出 0.1.x 的改动，由用户选择导入；`install.sh` 列出改动，`cleanup.sh` 警告还没导入的账号 | 正式发布前 | 已完成（设计见 [i6-legacy-changes.md](design/i6-legacy-changes.md)，测试见 `LegacyChangesTests`） |
 | I7 | **设置文件按 3.4 处理**：HTTP 服务默认关闭（从 0.1.x 升级的用户保持原设置）；逐项解析；整个文件读不懂时改名保留 | 正式发布前 | 已完成 |
