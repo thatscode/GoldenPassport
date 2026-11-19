@@ -12,22 +12,13 @@ and your existing accounts are migrated automatically. The changes below are rel
 the last release of the original project. To upgrade, run `install.sh` from the release package;
 see [Installation](README.md#installation).
 
-### Rewritten from scratch
-
-- Swift Package instead of an Xcode project with CocoaPods; the Objective-C one-time-password
-  code, the bundled google-toolbox-for-mac sources and the Swifter HTTP server are all gone.
-- TOTP is implemented with CryptoKit and honours `algorithm`, `digits` and `period` from the
-  otpauth URL (SHA1 / SHA256 / SHA512, 6–8 digits), verified against the RFC 6238 test vectors.
-- Accounts are stored as an ordered list instead of a dictionary whose order changed on every
-  launch: in the login Keychain in signed releases, in `accounts.json` in builds you make yourself.
-- Unit tests cover TOTP, URL parsing, storage (including the Keychain), migration, the HTTP API, the update check and the
-  translations.
-
 ### New features
 
 - **New app icon** in the macOS 26 style (a gold key with a person in its bow, after the original
   icon), with a matching menu bar icon that stays sharp at every size. macOS 13–15 show a flat
   version of it.
+- **Every otpauth code setting is honoured**: `algorithm` (SHA1, SHA256, SHA512), `digits` (6–8)
+  and `period`, as set in the otpauth URL.
 - **English interface**: 0.1.x menus were in Chinese only. The interface follows the system
   language, or pick one in the menu under **Language / 语言**.
 - **Manage window** (⌘M): drag or use the arrow buttons to reorder, double-click to rename,
