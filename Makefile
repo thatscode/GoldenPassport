@@ -4,7 +4,7 @@ BUILD_ROOT ?= $(HOME)/Library/Caches/GoldenPassport-build
 SWIFT = xcrun swift
 SWIFT_FLAGS = --scratch-path "$(BUILD_ROOT)/swiftpm"
 
-.PHONY: test dev release beta run-dev clean
+.PHONY: test dev release package beta run-dev clean
 
 test:
 	$(SWIFT) test $(SWIFT_FLAGS)
@@ -21,5 +21,9 @@ run-dev: dev
 clean:
 	rm -rf "$(BUILD_ROOT)"
 
+# Signed and notarized: make package SIGN_IDENTITY="Developer ID Application: …" NOTARIZE=1
+package:
+	BUILD_ROOT="$(BUILD_ROOT)" scripts/package.sh
+
 beta:
-	BUILD_ROOT="$(BUILD_ROOT)" scripts/package-beta.sh
+	BUILD_ROOT="$(BUILD_ROOT)" scripts/package.sh beta

@@ -241,10 +241,11 @@ make test      # 单元测试（TOTP RFC 6238 测试向量、URL 解析、存储
 make dev       # 独立的「GoldenPassport Dev.app」：独立的 Bundle ID、数据目录、端口 17305，快捷键默认关闭
 make run-dev   # 构建并启动开发版
 make release   # 「GoldenPassport.app」，可直接替换已安装的正式版
-make beta      # 通用版 + install.sh / rollback.sh / 测试说明，打包为 zip，放在 dist/ 目录
+make package   # 通用版 + 安装、回退、清理脚本 + 安装说明，打包为 zip，放在 dist/ 目录
+make beta      # 同上，标为预发布版「beta」
 ```
 
-构建产物输出到 `~/Library/Caches/GoldenPassport-build/<variant>/`。之所以放在源码目录之外，是因为 iCloud 同步的目录会导致代码签名失败。`ARCHS="arm64 x86_64"` 可以构建通用版。构建出的 App 使用 ad-hoc 签名，并启用了 Hardened Runtime；设置 `SIGN_IDENTITY="Developer ID Application: …"` 则用证书签名。`KEYCHAIN=1` 把账号存在登录钥匙串里（Info.plist 的 `GPKeychainService`，开发版用自己的条目）。只有设置了 `SIGN_IDENTITY` 时它才默认打开：系统把每个 ad-hoc 构建都当成新的程序，每次更新后都会重新询问钥匙串授权。`GP_KEYCHAIN_TESTS=1 make test` 会额外运行读写真实登录钥匙串的测试（使用临时条目）。`scripts/package-beta.sh beta.3` 可以打出带编号的内测包。内测版会把自己的版本报告为 `0.2.0-beta.3`，所以正式版 `0.2.0` 发布后，检查更新会提示升级。
+构建产物输出到 `~/Library/Caches/GoldenPassport-build/<variant>/`。之所以放在源码目录之外，是因为 iCloud 同步的目录会导致代码签名失败。`ARCHS="arm64 x86_64"` 可以构建通用版。构建出的 App 使用 ad-hoc 签名，并启用了 Hardened Runtime；设置 `SIGN_IDENTITY="Developer ID Application: …"` 则用证书签名。`KEYCHAIN=1` 把账号存在登录钥匙串里（Info.plist 的 `GPKeychainService`，开发版用自己的条目）。只有设置了 `SIGN_IDENTITY` 时它才默认打开：系统把每个 ad-hoc 构建都当成新的程序，每次更新后都会重新询问钥匙串授权。`GP_KEYCHAIN_TESTS=1 make test` 会额外运行读写真实登录钥匙串的测试（使用临时条目）。`scripts/package.sh beta.3` 可以打出带编号的预发布包，它会把自己的版本报告为 `0.2.0-beta.3`，所以正式版 `0.2.0` 发布后，检查更新会提示升级。正式发布包用 `make package SIGN_IDENTITY="Developer ID Application: …" NOTARIZE=1` 构建：`scripts/notarize.sh` 会用 Xcode 里登录的 Apple ID（或 `NOTARY_PROFILE` 指定的 `notarytool` 配置）提交公证，并把公证票据装订到 App 上。
 
 首次启动时，0.1.x 的数据（`gp.secrets`、`config.plist`）会在同一目录下迁移为 `accounts.json` / `settings.json`，旧文件保留不动（见[数据与安全](#数据与安全)）。设置了 `KEYCHAIN=1` 的构建则把账号迁移到钥匙串：有内测版留下的 `accounts.json` 就从它迁移，否则从 `gp.secrets` 迁移。`GoldenPassport --migrate-data [--data-dir PATH]` 可以在不打开界面的情况下执行同样的迁移并核对结果，`scripts/install.sh` 就是靠它完成核对的。开发版会把正式版的数据复制到 `GoldenPassport-Dev/`，从不写入正式版的数据目录，所以可以和已安装的正式版同时运行。
 

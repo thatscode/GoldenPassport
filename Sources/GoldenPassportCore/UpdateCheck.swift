@@ -18,7 +18,7 @@ public struct AppVersion: Comparable, CustomStringConvertible, Sendable {
     }
 
     /// The version a bundle reports: CFBundleShortVersionString plus, for beta packages, the
-    /// GPPrerelease label (scripts/package-beta.sh), as in "0.2.0-beta.3". A beta then counts
+    /// GPPrerelease label (scripts/package.sh <label>), as in "0.2.0-beta.3". A beta then counts
     /// as older than the release it leads up to, so the update check offers that release.
     public init?(bundleInfo info: [String: Any]) {
         guard let version = info["CFBundleShortVersionString"] as? String else { return nil }

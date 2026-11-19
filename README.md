@@ -375,7 +375,8 @@ make test      # unit tests (TOTP RFC 6238 vectors, URL parsing, storage, migrat
 make dev       # isolated "GoldenPassport Dev.app": own bundle id, data dir, port 17305, hotkeys off
 make run-dev   # build and launch the Dev app
 make release   # "GoldenPassport.app", drop-in replacement for the installed app
-make beta      # universal release + install.sh / rollback.sh / tester notes, zipped under dist/
+make package   # universal release + install/rollback/cleanup scripts + install notes, zipped under dist/
+make beta      # the same, as a pre-release labelled "beta"
 ```
 
 Apps are written to `~/Library/Caches/GoldenPassport-build/<variant>/` (kept out of the
@@ -386,8 +387,11 @@ the accounts in the login Keychain (Info.plist `GPKeychainService`; the Dev buil
 item). It is the default only with `SIGN_IDENTITY`, because macOS treats every ad-hoc build as a
 new app and would ask for Keychain access after each update. `GP_KEYCHAIN_TESTS=1 make test`
 also runs the tests that use the real login Keychain, with a throwaway item.
-`scripts/package-beta.sh beta.3` packages a numbered beta. A beta build reports itself as
-`0.2.0-beta.3`, so once `0.2.0` is released, its update check offers it.
+`scripts/package.sh beta.3` packages a numbered pre-release. It reports itself as `0.2.0-beta.3`,
+so once `0.2.0` is released, its update check offers it. Release packages are built with
+`make package SIGN_IDENTITY="Developer ID Application: …" NOTARIZE=1`: `scripts/notarize.sh` then
+submits the app with the Apple ID signed in to Xcode (or with a `notarytool` profile named by
+`NOTARY_PROFILE`) and staples the ticket.
 
 On first launch, data from 0.1.x (`gp.secrets`, `config.plist`) is migrated to
 `accounts.json` / `settings.json` in the same directory; the legacy files are left in place

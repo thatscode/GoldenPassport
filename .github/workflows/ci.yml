@@ -66,6 +66,9 @@ jobs:
           if grep '/\._' "$RUNNER_TEMP/zip-list.txt"; then echo "::error::package contains AppleDouble ._ files"; exit 1; fi
           unzip -q "$ZIP" -d "$RUNNER_TEMP/unzipped"
           codesign --verify --strict "$RUNNER_TEMP"/unzipped/*/GoldenPassport.app
+          for f in install.sh rollback.sh cleanup.sh INSTALL.md 安装说明.md LICENSE; do
+            test -f "$RUNNER_TEMP"/unzipped/*/"$f" || { echo "::error::package lacks $f"; exit 1; }
+          done
       - name: Install from the package
         run: |
           export GP_APPLICATIONS_DIR="$RUNNER_TEMP/apps" GP_DATA_DIR="$RUNNER_TEMP/install-data" \
