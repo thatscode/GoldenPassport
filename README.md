@@ -68,15 +68,17 @@ Chinese account names display correctly.
 
 # What's new in 0.2.0
 
-Compared with the original 0.1.7 release. The full list is in the [changelog](CHANGELOG.md).
+Compared with the original 0.1.7 release. The [changelog](CHANGELOG.md) lists the changes in every
+release.
 
 ### New features
 
 - **New app icon** in the macOS 26 style (a gold key with a person in its bow, after the original
   icon), with a matching menu bar icon that stays sharp at every size. macOS 13–15 show a flat
   version of it.
-- **Every otpauth code setting is honoured**: `algorithm` (SHA1, SHA256, SHA512), `digits` (6–8)
-  and `period`, as set in the otpauth URL.
+- **Codes follow the TOTP settings in the otpauth URL**: `algorithm` (SHA1, SHA256, SHA512),
+  `digits` (6–8) and `period`. 0.1.x ignored them and always generated 6-digit SHA1 codes every
+  30 seconds, so accounts with other settings got wrong codes.
 - **English interface**: 0.1.x menus were in Chinese only. The interface follows the system
   language, or pick one in the menu under **Language / 语言**.
 - **Manage window** (⌘M): drag or use the arrow buttons to reorder, double-click to rename,
@@ -87,8 +89,8 @@ Compared with the original 0.1.7 release. The full list is in the [changelog](CH
   accepts both this format and `.secrets` backups ([#10](https://github.com/stanzhai/GoldenPassport/issues/10), [#30](https://github.com/stanzhai/GoldenPassport/issues/30)).
 - **Launch at login** toggle.
 - **Update check**: **Check for Updates…** asks GitHub whether a newer release is out, and
-  **Check for Updates Daily** does so once a day (off by default). If a release changes the data format or needs an
-  intermediate upgrade first, the prompt says so before you install anything.
+  **Check for Updates Daily** does so once a day (off by default). If a release changes the data
+  format or needs an intermediate upgrade first, the prompt says so before you install anything.
 - The account name is suggested from the otpauth URL label, and pasted URLs are trimmed ([#26](https://github.com/stanzhai/GoldenPassport/issues/26)).
 - **Installer with a safety net**: `install.sh` backs up the app and data, checks every migrated
   account and restores the previous app and data automatically if a check fails. `rollback.sh`
@@ -111,18 +113,19 @@ Compared with the original 0.1.7 release. The full list is in the [changelog](CH
 ### Security & privacy
 
 - Your accounts are kept in the **login Keychain** instead of a plaintext file. Other apps can't
-  read them without macOS asking you first, and copies of the data folder (installer backups,
-  sync tools, unencrypted Time Machine backups) no longer carry your secrets.
+  read them without macOS asking you first, and once the old data files are cleaned up, copies of
+  the data folder (installer backups, sync tools, unencrypted Time Machine backups) no longer carry
+  your secrets.
 - Releases are **signed with a Developer ID and notarized by Apple**: they open without
   Gatekeeper workarounds, and updates from the same developer keep their access to the Keychain
   without asking again.
 - The HTTP API is off on new installs. It has no password, so while it runs anything running as
   you on this Mac can read every code. Upgrades from 0.1.x keep their previous setting.
 - GoldenPassport goes online only to check for updates, and only when you ask it to: choose
-  **Check for Updates…**, or turn on **Check for Updates Daily** (off by default). The check asks GitHub's API for the
-  latest release and, if it is newer, downloads a small compatibility file attached to it. Requests
-  identify themselves only as `GoldenPassport/<version>` and carry no cookies or account
-  information. Nothing is downloaded or installed automatically.
+  **Check for Updates…**, or turn on **Check for Updates Daily** (off by default). The check asks
+  GitHub's API for the latest release and, if it is newer, downloads a small compatibility file
+  attached to it. Requests identify themselves only as `GoldenPassport/<version>` and carry no
+  cookies or account information. New versions are never downloaded or installed automatically.
 - The HTTP API listens on 127.0.0.1 only and rejects requests with a foreign `Host` header
   ([#6](https://github.com/stanzhai/GoldenPassport/issues/6)), so web pages cannot read your codes through DNS rebinding.
 - Data files are owner-only: the data directory is `0700` and files are `0600`. 0.1.x left them
@@ -147,8 +150,8 @@ Releases are signed with a Developer ID and notarized by Apple, so they open lik
 downloaded app.
 
 > [!NOTE]
-> `brew install --cask goldenpassport` installs the old 0.1.7 and is currently disabled by
-> Homebrew. Bringing the cask back is on the [roadmap](#roadmap).
+> The Homebrew cask (`brew install --cask goldenpassport`) still points to the old 0.1.7 and has
+> been disabled by Homebrew. Bringing it back is on the [roadmap](#roadmap).
 
 ### Upgrading from 0.1.x, or installing fresh (recommended)
 
@@ -156,8 +159,8 @@ downloaded app.
    [latest release](https://github.com/thatscode/GoldenPassport/releases/latest) and unzip it.
    The folder holds the app, `install.sh`, `rollback.sh`, `cleanup.sh` and the install notes
    (`INSTALL.md`, `安装说明.md`).
-2. In Terminal, run `bash `, drag `install.sh` from the unzipped folder into the window and
-   press Return.
+2. In Terminal, type `bash ` (with a space after it), drag `install.sh` from the unzipped folder
+   into the window and press Return.
 
 To build it from source instead, see [Building](#building).
 
@@ -180,11 +183,10 @@ fresh prompt. Without the permission, hotkeys copy the code to the clipboard.
 
 ### Rolling back
 
-Run `bash rollback.sh` from the same folder to put back the app you had before. 0.1.x and the
-0.2.0 betas don't use the Keychain: they see your accounts as they were when 0.2.0 moved them
-there (`gp.secrets` itself is never modified). To take later changes along, export a `.secrets`
-backup from 0.2.0 first and import it there. `bash rollback.sh --restore-data` also resets the
-data folder to how it was before the install.
+Run `rollback.sh` the same way to put back the app you had before. 0.1.x and the 0.2.0 betas
+don't use the Keychain: they see your accounts as they were when 0.2.0 moved them there
+(`gp.secrets` itself is never modified). To take later changes along, export a `.secrets` backup
+from 0.2.0 first and import it there.
 
 When you upgrade again, 0.2.0 keeps using the accounts in the Keychain. Accounts you added or
 changed in 0.1.x in the meantime are listed so you can choose which ones to import; nothing you
@@ -192,13 +194,17 @@ already have is overwritten or deleted, and an account whose URL changed is impo
 existing one as "name (0.1.x)". Changes made in a beta are not carried over; `cleanup.sh` lists
 them before it deletes the beta's `accounts.json`.
 
+`rollback.sh --restore-data` also resets the data folder to how it was before the install, and
+the changes made in 0.2.0 are then lost: installing 0.2.0 again migrates from the restored files
+and keeps the accounts that were in the Keychain only as a spare item, `accounts.replaced-<time>`.
+
 ### Cleaning up after the upgrade
 
-Once 0.2.0 works for you and you no longer need to roll back, run `bash cleanup.sh` from the same
-folder. It checks that your accounts read back from the Keychain, lists what it will delete (the
-installer backups, the legacy `gp.secrets` / `config.plist` and a beta's `accounts.json`, all of
-which contain your secrets unencrypted) and warns about accounts that exist only in those files.
-It deletes only after you type `yes`; after that you can no longer roll back.
+Once 0.2.0 works for you and you no longer need to roll back, run `cleanup.sh` the same way. It
+checks that your accounts read back from the Keychain and lists what it will delete: the installer
+backups and the old data files (`gp.secrets`, a beta's `accounts.json`), which contain your
+secrets unencrypted, along with the 0.1.x `config.plist`. It warns about accounts that exist only
+in those files and deletes only after you type `yes`; after that you can no longer roll back.
 
 The install notes in the package (`INSTALL.md`, also [online](docs/install.md)) cover installing,
 rolling back and cleaning up step by step.
@@ -253,7 +259,7 @@ echo "$code"
 # Data & security
 
 > [!CAUTION]
-> **Upgrading from 0.1.x leaves unencrypted copies of your MFA secrets on disk.**
+> **Upgrading leaves unencrypted copies of your MFA secrets on disk.**
 >
 > - **Installer backup**: `install.sh` copies the whole data directory to
 >   `~/GoldenPassport-backups/<timestamp>/` so it can roll back. This is a plaintext copy of
@@ -269,24 +275,36 @@ echo "$code"
 
 GoldenPassport keeps the account list in one item named **GoldenPassport** in your login
 Keychain. It stays on this Mac (it is not synced through iCloud Keychain), and other apps that
-ask for it get a macOS prompt first. The data folder, `~/Library/Application Support/GoldenPassport/`,
-holds no secrets: `accounts-v2.json` only says that the accounts are in the Keychain, and
-`settings.json` holds your settings. The Keychain doesn't change the HTTP API or exports: while
+ask for it get a macOS prompt first. The Keychain doesn't change the HTTP API or exports: while
 the API runs, anything running as you can still read every code, and exports are still
 unencrypted.
 
-The data folder is readable only by you: 0.2.0 restricts it to `0700` and its files to `0600`
-(0.1.x left them readable by every local user). After an upgrade from 0.1.x it also holds the
-legacy `gp.secrets` / `config.plist`, and `legacy-baseline.json`, which records which accounts
-`gp.secrets` held, as names and URL fingerprints without any secrets, so that changes made in
-0.1.x after a rollback can be found.
+The data folder, `~/Library/Application Support/GoldenPassport/`, is readable only by you: 0.2.0
+restricts it to `0700` and its files to `0600` (0.1.x left them readable by every local user).
+Apart from the old data files listed above, it holds no secrets: `accounts-v2.json` only says that
+the accounts are in the Keychain, `settings.json` holds your settings, and `legacy-baseline.json`
+records which accounts `gp.secrets` held, as names and URL fingerprints without any secrets, so
+that changes made in 0.1.x after a rollback can be found.
 
 ### If GoldenPassport can't read its data
 
 If a data file can't be read (for example, it is damaged or was edited by hand), GoldenPassport
-shows an alert and quits without changing any file. It does not start with an empty list, because
-the next save would then overwrite the file. To recover, work in the data folder (click Show in
-Finder in the alert, or open `~/Library/Application Support/GoldenPassport/`):
+shows an alert that names the file and quits without changing any file. It does not start with an
+empty list, because the next save would then overwrite your data. To recover, work in the data
+folder (click Show in Finder in the alert, or open `~/Library/Application Support/GoldenPassport/`).
+
+If the alert names **`accounts-v2.json`**, your accounts are still in the Keychain:
+
+1. Rename `accounts-v2.json`, for example to `accounts-v2.damaged.json`.
+2. Move `gp.secrets` and `accounts.json` out of the data folder for now, if they are there.
+   Otherwise GoldenPassport would rebuild the list from those older files, and keep your current
+   accounts only as a spare Keychain item (`accounts.replaced-<time>`).
+3. Start GoldenPassport. It finds your accounts in the Keychain and writes a new
+   `accounts-v2.json`. Put the files you moved back afterwards if you still want to be able to
+   roll back.
+
+If the alert names **`accounts.json`**, the data file of builds you make yourself and of the 0.2.0
+betas:
 
 1. **Keep the damaged file**: rename it, for example to `accounts.damaged.json`. Don't delete it.
 2. **If you have a backup of `accounts.json`**, copy it back into the data folder and start
@@ -354,9 +372,10 @@ the Keychain storage (`KEYCHAIN=1` does so on its own); with `make package`, `NO
 notarizes the app and staples the ticket (`scripts/notarize.sh`). `ARCHS="arm64 x86_64"` builds a
 universal binary.
 
-The Dev build copies the release data into `GoldenPassport-Dev/` on first launch and never writes
-to the release data folder, so it can run next to the installed app. That copy holds your
-secrets: delete it when you are done. `GoldenPassport --migrate-data [--data-dir PATH]` runs the
+On first launch, the Dev build copies the 0.1.x data (`gp.secrets`, `config.plist`) from the
+release data folder into `GoldenPassport-Dev/`, if it is there. It never writes to the release data
+folder, so it can run next to the installed app. The copy holds your secrets in plain text: delete
+`GoldenPassport-Dev/` when you are done. `GoldenPassport --migrate-data [--data-dir PATH]` runs the
 data migration without the user interface and checks the result; `install.sh` relies on it.
 `GP_KEYCHAIN_TESTS=1 make test` also runs the tests that use the real login Keychain, with a
 throwaway item.

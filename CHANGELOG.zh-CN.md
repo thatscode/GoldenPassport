@@ -11,7 +11,7 @@
 ### 新功能
 
 - **新图标**：按 macOS 26 的风格重画（金色钥匙，钥匙圈里是一个人像，延续原来的图标），菜单栏图标也随之更新，在各种尺寸下都清晰。macOS 13–15 显示它的扁平版本。
-- **支持 otpauth URL 里的全部验证码参数**：`algorithm`（SHA1、SHA256、SHA512）、`digits`（6–8 位）和 `period`。
+- **验证码按 otpauth URL 里的 TOTP 参数生成**：`algorithm`（SHA1、SHA256、SHA512）、`digits`（6–8 位）和 `period`。0.1.x 会忽略这些参数，一律生成 30 秒一换的 6 位 SHA1 验证码，参数不同的账号拿到的验证码是错的。
 - **英文界面**：0.1.x 的菜单只有中文。新版默认跟随系统语言，也可以在菜单「语言 / Language」里固定为简体中文或英文。
 - **管理窗口**（⌘M）：拖动或用上下箭头调整顺序，双击重命名，右键修改 URL 或删除（[#12](https://github.com/stanzhai/GoldenPassport/issues/12)、[#17](https://github.com/stanzhai/GoldenPassport/issues/17)、[#29](https://github.com/stanzhai/GoldenPassport/issues/29)）。
 - **全局快捷键可配置**：⌃⌥⌘0–9（新的默认值）、⇧⌘0–9（0.1.x 的方式）、⌃⌥0–9，或者关闭。改为系统级注册，按键不会再同时传给当前 App（[#4](https://github.com/stanzhai/GoldenPassport/issues/4)、[#11](https://github.com/stanzhai/GoldenPassport/issues/11)、[#18](https://github.com/stanzhai/GoldenPassport/issues/18)）。

@@ -52,12 +52,12 @@ macOS 菜单栏上的原生 Google Authenticator（谷歌身份验证器）。�
 
 # 0.2.0 有哪些变化
 
-以下对比的是原版最后一个版本 0.1.7，完整列表见[更新日志](CHANGELOG.zh-CN.md)。
+以下对比的是原版最后一个版本 0.1.7。每个版本的变化见[更新日志](CHANGELOG.zh-CN.md)。
 
 ### 新功能
 
 - **新图标**：按 macOS 26 的风格重画（金色钥匙，钥匙圈里是一个人像，延续原来的图标），菜单栏图标也随之更新，在各种尺寸下都清晰。macOS 13–15 显示它的扁平版本。
-- **支持 otpauth URL 里的全部验证码参数**：`algorithm`（SHA1、SHA256、SHA512）、`digits`（6–8 位）和 `period`。
+- **验证码按 otpauth URL 里的 TOTP 参数生成**：`algorithm`（SHA1、SHA256、SHA512）、`digits`（6–8 位）和 `period`。0.1.x 会忽略这些参数，一律生成 30 秒一换的 6 位 SHA1 验证码，参数不同的账号拿到的验证码是错的。
 - **英文界面**：0.1.x 的菜单只有中文。新版默认跟随系统语言，也可以在菜单「语言 / Language」里固定为简体中文或英文。
 - **管理窗口**（⌘M）：拖动或用上下箭头调整顺序，双击重命名，右键修改 URL 或删除（[#12](https://github.com/stanzhai/GoldenPassport/issues/12)、[#17](https://github.com/stanzhai/GoldenPassport/issues/17)、[#29](https://github.com/stanzhai/GoldenPassport/issues/29)）。
 - **全局快捷键可配置**：⌃⌥⌘0–9（新的默认值）、⇧⌘0–9（0.1.x 的方式）、⌃⌥0–9，或者关闭。改为系统级注册，按键不会再同时传给当前 App（[#4](https://github.com/stanzhai/GoldenPassport/issues/4)、[#11](https://github.com/stanzhai/GoldenPassport/issues/11)、[#18](https://github.com/stanzhai/GoldenPassport/issues/18)）。
@@ -79,7 +79,7 @@ macOS 菜单栏上的原生 Google Authenticator（谷歌身份验证器）。�
 
 ### 安全与隐私
 
-- 账号存在**登录钥匙串**里，不再写明文文件。别的程序要读取时，系统会先弹框问你；数据目录被拷走、被同步工具带走，或出现在安装备份、未加密的时间机器备份里，都不会再带出密钥。
+- 账号存在**登录钥匙串**里，不再写明文文件。别的程序要读取时，系统会先弹框问你；清理掉旧的数据文件之后，数据目录被拷走、被同步工具带走，或出现在安装备份、未加密的时间机器备份里，都不会再带出密钥。
 - 正式版使用 **Developer ID 签名并经过 Apple 公证**：下载后可以直接打开，不用绕过 Gatekeeper；同一个开发者签名的后续更新可以直接读取钥匙串里的账号，不会再次询问。
 - 全新安装时 HTTP 接口默认关闭。它没有访问密码，开启期间，这台 Mac 上以你的身份运行的任何程序都能读取全部验证码。从 0.1.x 升级的用户保持原来的设置。
 - GoldenPassport 只在检查更新时联网，而且只在你要求时才检查：点「检查更新…」，或者打开「每天自动检查更新」（默认关闭）。检查时会向 GitHub 的接口查询最新版本；如果比当前版本新，还会下载这个版本附带的一个兼容性说明小文件。请求只以 `GoldenPassport/<版本号>` 标识自己，不带 Cookie，也不带任何账号信息。不会自动下载或安装新版本。
@@ -104,7 +104,7 @@ macOS 菜单栏上的原生 Google Authenticator（谷歌身份验证器）。�
 正式版使用 Developer ID 签名并经过 Apple 公证，下载后可以像其他 App 一样直接打开。
 
 > [!NOTE]
-> 现在执行 `brew install --cask goldenpassport` 装的是旧版 0.1.7，而且这个 cask 已被 Homebrew 禁用。恢复 Homebrew cask 在[后续计划](#后续计划)中。
+> Homebrew 上的 cask（`brew install --cask goldenpassport`）指向的仍是旧版 0.1.7，而且已被 Homebrew 禁用。恢复 Homebrew cask 在[后续计划](#后续计划)中。
 
 ### 从 0.1.x 升级，或全新安装（推荐）
 
@@ -125,13 +125,15 @@ macOS 菜单栏上的原生 Google Authenticator（谷歌身份验证器）。�
 
 ### 回退
 
-在同一个文件夹里执行 `bash rollback.sh`，就会恢复安装前的 App。0.1.x 和 0.2.0 内测版不使用钥匙串，它们看到的是 0.2.0 迁移那一刻的账号（`gp.secrets` 本身从未被修改）。如果要带上之后的改动，先在 0.2.0 里导出 `.secrets` 备份文件，回退后再导入。执行 `bash rollback.sh --restore-data` 会把数据目录也恢复到安装前。
+用同样的方式运行 `rollback.sh`，就会恢复安装前的 App。0.1.x 和 0.2.0 内测版不使用钥匙串，它们看到的是 0.2.0 迁移那一刻的账号（`gp.secrets` 本身从未被修改）。如果要带上之后的改动，先在 0.2.0 里导出 `.secrets` 备份文件，回退后再导入。
 
 再次升级后，0.2.0 继续使用钥匙串里的账号。回退期间在 0.1.x 里新增或修改的账号会列出来，由你选择要导入哪些；已有的账号不会被覆盖或删除，改过 URL 的账号会以「名称 (0.1.x)」导入，和原来的账号并存。在内测版里做的改动不会自动带过去，`cleanup.sh` 删除内测版的 `accounts.json` 前会列出它们。
 
+`rollback.sh --restore-data` 会把数据目录也恢复到安装前，在 0.2.0 里做的改动随之丢失：再次安装 0.2.0 时会从恢复的旧文件重新迁移，原来钥匙串里的账号只作为备用条目 `accounts.replaced-<时间>` 保留。
+
 ### 升级后的清理
 
-确认 0.2.0 使用正常、不再需要回退后，在同一个文件夹里执行 `bash cleanup.sh`。脚本会先确认钥匙串里的账号读取正常，再列出要删除的内容：安装备份、旧版的 `gp.secrets` / `config.plist` 和内测版的 `accounts.json`，这些都含有未加密的密钥。如果有账号只存在于这些文件里，会额外提醒。输入 `yes` 后才会删除；清理之后，就不能再回退了。
+确认 0.2.0 使用正常、不再需要回退后，用同样的方式运行 `cleanup.sh`。脚本会先确认钥匙串里的账号读取正常，再列出要删除的内容：安装备份和旧的数据文件（`gp.secrets`、内测版的 `accounts.json`），这些都含有未加密的密钥；0.1.x 的 `config.plist` 也会一并删除。如果有账号只存在于这些文件里，会额外提醒。输入 `yes` 后才会删除；清理之后，就不能再回退了。
 
 安装包里的安装说明（`安装说明.md`，也可以[在线查看](docs/install.zh-CN.md)）一步步介绍了安装、回退和清理。
 
@@ -180,20 +182,28 @@ echo "$code"
 # 数据与安全
 
 > [!CAUTION]
-> **从 0.1.x 升级后，磁盘上会留有未加密的 MFA 密钥副本。**
+> **升级后，磁盘上会留有未加密的 MFA 密钥副本。**
 >
 > - **安装脚本的备份**：`install.sh` 会把整个数据目录复制到 `~/GoldenPassport-backups/<时间>/`，用于回退。这是全部密钥的明文副本（权限为仅本人可读）。不要分享或同步它，确认不再需要回退后请删除（用 `cleanup.sh`，见[升级后的清理](#升级后的清理)）。
 > - **旧版数据文件**：迁移后 `gp.secrets` 会保留在数据目录里，旧版才能继续使用。它之后不再更新，所以**你在 0.2.x 里删除的账号，密钥仍然留在这个文件里**。确定不会再回到 0.1.x 后，请删除它（用 `cleanup.sh`）。
 > - **内测版的数据文件**：0.2.0 把账号迁移到钥匙串后，内测版的 `accounts.json` 仍以明文留在数据目录里，供回退使用。确定不会再回到内测版后，请删除它（用 `cleanup.sh`）。
 > - **导出文件**：`.secrets` 和 `.txt` 两种导出文件都包含未加密的全部密钥。
 
-GoldenPassport 把账号列表存在登录钥匙串里一个名为 **GoldenPassport** 的条目中。它只存在这台 Mac 上（不通过 iCloud 钥匙串同步），别的程序要读取时系统会先弹框询问。数据目录 `~/Library/Application Support/GoldenPassport/` 里没有密钥：`accounts-v2.json` 只说明账号存在钥匙串里，`settings.json` 保存设置。钥匙串不改变 HTTP 接口和导出文件：接口开启期间，以你的身份运行的任何程序仍然能读取全部验证码，导出文件仍然是明文。
+GoldenPassport 把账号列表存在登录钥匙串里一个名为 **GoldenPassport** 的条目中。它只存在这台 Mac 上（不通过 iCloud 钥匙串同步），别的程序要读取时系统会先弹框询问。钥匙串不改变 HTTP 接口和导出文件：接口开启期间，以你的身份运行的任何程序仍然能读取全部验证码，导出文件仍然是明文。
 
-数据目录只有你本人能读：0.2.0 会把目录权限设为 `0700`、文件设为 `0600`（0.1.x 的文件本机所有用户都能读）。从 0.1.x 升级后，数据目录里还有旧版的 `gp.secrets` / `config.plist`，以及 `legacy-baseline.json`：它记录 `gp.secrets` 里有哪些账号（只有名称和 URL 的指纹，不含密钥），用来发现回退期间在 0.1.x 里做的改动。
+数据目录 `~/Library/Application Support/GoldenPassport/` 只有你本人能读：0.2.0 会把目录权限设为 `0700`、文件设为 `0600`（0.1.x 的文件本机所有用户都能读）。除了上面列出的旧数据文件，这里没有密钥：`accounts-v2.json` 只说明账号存在钥匙串里，`settings.json` 保存设置，`legacy-baseline.json` 记录 `gp.secrets` 里有哪些账号（只有名称和 URL 的指纹，不含密钥），用来发现回退期间在 0.1.x 里做的改动。
 
 ### GoldenPassport 无法读取数据时
 
-如果数据文件读不出来（比如文件损坏了，或者被手动改过），GoldenPassport 会弹出提示并退出，不会改动任何文件。它不会带着空列表启动，否则下次保存时就会覆盖原来的文件。恢复方法如下，操作都在数据目录里进行（在提示框里点「在 Finder 中显示」，或者打开 `~/Library/Application Support/GoldenPassport/`）：
+如果数据文件读不出来（比如文件损坏了，或者被手动改过），GoldenPassport 会弹出提示、写明是哪个文件，然后退出，不会改动任何文件。它不会带着空列表启动，否则下次保存时就会覆盖原来的数据。恢复时的操作都在数据目录里进行（在提示框里点「在 Finder 中显示」，或者打开 `~/Library/Application Support/GoldenPassport/`）。
+
+如果提示里写的是 **`accounts-v2.json`**，你的账号仍然在钥匙串里：
+
+1. 把 `accounts-v2.json` 改个名字，例如 `accounts-v2.damaged.json`。
+2. 数据目录里如果有 `gp.secrets` 或 `accounts.json`，先把它们暂时移出去。否则 GoldenPassport 会用这些旧文件重建列表，钥匙串里现在的账号只会作为备用条目（`accounts.replaced-<时间>`）保留。
+3. 启动 GoldenPassport。它会找到钥匙串里的账号，并重新写一份 `accounts-v2.json`。如果还想保留回退的可能，之后再把移出去的文件放回来。
+
+如果提示里写的是 **`accounts.json`**（自己构建的版本和 0.2.0 内测版的数据文件）：
 
 1. **保留损坏的文件**：给它改个名字，例如 `accounts.damaged.json`，不要删除。
 2. **如果有 `accounts.json` 的备份**，把它复制回数据目录，再启动 GoldenPassport。备份可以来自时间机器（Time Machine），也可以来自 `~/GoldenPassport-backups/<时间>/data/`：如果你在已经装了 0.2.x 的情况下运行过 `install.sh`，那里保存着那次安装时的账号。
@@ -232,7 +242,7 @@ make beta      # 同上，标为预发布版
 
 构建产物输出到 `~/Library/Caches/GoldenPassport-build/<variant>/`。构建出的 App 使用 ad-hoc 签名并启用 Hardened Runtime，账号以明文存在数据目录的 `accounts.json` 里：系统把每个 ad-hoc 构建都当成新的程序，每次更新后都会重新询问钥匙串授权。设置 `SIGN_IDENTITY="Developer ID Application: …"` 会用证书签名，同时启用钥匙串存储（也可以单独设置 `KEYCHAIN=1`）；配合 `make package` 再设置 `NOTARIZE=1`，会提交 Apple 公证并装订公证票据（`scripts/notarize.sh`）。`ARCHS="arm64 x86_64"` 可以构建通用版。
 
-开发版首次启动时会把正式版的数据复制到 `GoldenPassport-Dev/`，从不写入正式版的数据目录，所以可以和已安装的正式版同时运行。这份副本含有你的密钥，用完请删除。`GoldenPassport --migrate-data [--data-dir PATH]` 可以在不打开界面的情况下执行数据迁移并核对结果，`install.sh` 就是靠它完成核对的。`GP_KEYCHAIN_TESTS=1 make test` 会额外运行读写真实登录钥匙串的测试（使用临时条目）。
+开发版首次启动时，如果正式版的数据目录里有 0.1.x 的数据（`gp.secrets`、`config.plist`），会把它复制到 `GoldenPassport-Dev/`；开发版从不写入正式版的数据目录，所以可以和已安装的正式版同时运行。这份副本是明文的密钥，用完请删除 `GoldenPassport-Dev/`。`GoldenPassport --migrate-data [--data-dir PATH]` 可以在不打开界面的情况下执行数据迁移并核对结果，`install.sh` 就是靠它完成核对的。`GP_KEYCHAIN_TESTS=1 make test` 会额外运行读写真实登录钥匙串的测试（使用临时条目）。
 
 # 后续计划
 

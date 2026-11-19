@@ -54,8 +54,9 @@ first launch, but you get no backup and no migration check.
 ## After installing
 
 - **Where your accounts are**: in your login Keychain, in an item named **GoldenPassport** that
-  Keychain Access shows. It stays on this Mac and is not synced through iCloud. The data folder
-  no longer holds any secrets. If macOS asks whether GoldenPassport may use your keychain, choose
+  Keychain Access shows. It stays on this Mac and is not synced through iCloud. Apart from the old
+  data files that `cleanup.sh` deletes (see [Cleaning up](#cleaning-up)), the data folder no longer
+  holds any secrets. If macOS asks whether GoldenPassport may use your keychain, choose
   **Always Allow**.
 - **Language**: the interface follows the system language. To pick one, choose it under
   **Language / 语言** in the menu, then click **Restart Now**.

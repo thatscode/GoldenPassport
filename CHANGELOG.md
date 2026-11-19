@@ -17,8 +17,9 @@ see [Installation](README.md#installation).
 - **New app icon** in the macOS 26 style (a gold key with a person in its bow, after the original
   icon), with a matching menu bar icon that stays sharp at every size. macOS 13–15 show a flat
   version of it.
-- **Every otpauth code setting is honoured**: `algorithm` (SHA1, SHA256, SHA512), `digits` (6–8)
-  and `period`, as set in the otpauth URL.
+- **Codes follow the TOTP settings in the otpauth URL**: `algorithm` (SHA1, SHA256, SHA512),
+  `digits` (6–8) and `period`. 0.1.x ignored them and always generated 6-digit SHA1 codes every
+  30 seconds, so accounts with other settings got wrong codes.
 - **English interface**: 0.1.x menus were in Chinese only. The interface follows the system
   language, or pick one in the menu under **Language / 语言**.
 - **Manage window** (⌘M): drag or use the arrow buttons to reorder, double-click to rename,
