@@ -6,7 +6,7 @@ A native Google Authenticator for the macOS menu bar: TOTP codes one click (or o
 
 > **This is a maintained fork of [stanzhai/GoldenPassport](https://github.com/stanzhai/GoldenPassport).**
 > The original project has been inactive since 2022 and its Homebrew cask was disabled in
-> September 2026. Version 0.2.0 here is a ground-up rewrite for current macOS and a drop-in
+> September 2026. Version 0.2 here is a ground-up rewrite for current macOS and a drop-in
 > upgrade for 0.1.x users: same app, same data folder, your existing accounts are migrated
 > automatically. All credit for the original idea and design goes to
 > [StanZhai](https://github.com/stanzhai).
@@ -66,10 +66,13 @@ Chinese account names display correctly.
 
 <img src="screenshot/restful-api.png" alt="Local HTTP API in a browser" width="560">
 
-# What's new in 0.2.0
+# What's new in 0.2
 
 Compared with the original 0.1.7 release. The [changelog](CHANGELOG.md) lists the changes in every
 release.
+
+0.2.1 fixes the menu bar icon, which showed only a tiny figure, stops a second copy of the app
+from running next to the first, and moves to the bundle ID `com.thatscode.GoldenPassport`.
 
 ### New features
 
@@ -175,32 +178,34 @@ The installer:
    anything does not match, it restores the previous app and data automatically**;
 5. starts GoldenPassport.
 
-After upgrading from 0.1.x or a 0.2.0 beta, grant **Accessibility** again if you want hotkeys to
-type the code for you:
-System Settings → Privacy & Security → Accessibility. If GoldenPassport is already listed but
-typing doesn't work, remove it with "−" and pick a hotkey option in the menu again to get a
-fresh prompt. Without the permission, hotkeys copy the code to the clipboard.
+After upgrading from 0.1.x, 0.2.0 or a 0.2.0 beta, grant **Accessibility** again if you want
+hotkeys to type the code for you: System Settings → Privacy & Security → Accessibility. If
+GoldenPassport is already listed but typing doesn't work, remove it with "−" and pick a hotkey
+option in the menu again to get a fresh prompt. Without the permission, hotkeys copy the code to
+the clipboard. Coming from 0.2.0, macOS also asks once whether GoldenPassport may use your
+keychain (choose **Always Allow**), and **Launch at Login** has to be turned on again: 0.2.1 has
+a new bundle ID.
 
 ### Rolling back
 
 Run `rollback.sh` the same way to put back the app you had before. 0.1.x and the 0.2.0 betas
-don't use the Keychain: they see your accounts as they were when 0.2.0 moved them there
+don't use the Keychain: they see your accounts as they were when 0.2.x moved them there
 (`gp.secrets` itself is never modified). To take later changes along, export a `.secrets` backup
-from 0.2.0 first and import it there.
+from 0.2.x first and import it there.
 
-When you upgrade again, 0.2.0 keeps using the accounts in the Keychain. Accounts you added or
+When you upgrade again, 0.2.x keeps using the accounts in the Keychain. Accounts you added or
 changed in 0.1.x in the meantime are listed so you can choose which ones to import; nothing you
 already have is overwritten or deleted, and an account whose URL changed is imported next to the
 existing one as "name (0.1.x)". Changes made in a beta are not carried over; `cleanup.sh` lists
 them before it deletes the beta's `accounts.json`.
 
 `rollback.sh --restore-data` also resets the data folder to how it was before the install, and
-the changes made in 0.2.0 are then lost: installing 0.2.0 again migrates from the restored files
+the changes made in 0.2.x are then lost: installing 0.2.x again migrates from the restored files
 and keeps the accounts that were in the Keychain only as a spare item, `accounts.replaced-<time>`.
 
 ### Cleaning up after the upgrade
 
-Once 0.2.0 works for you and you no longer need to roll back, run `cleanup.sh` the same way. It
+Once 0.2.x works for you and you no longer need to roll back, run `cleanup.sh` the same way. It
 checks that your accounts read back from the Keychain and lists what it will delete: the installer
 backups and the old data files (`gp.secrets`, a beta's `accounts.json`), which contain your
 secrets unencrypted, along with the 0.1.x `config.plist`. It warns about accounts that exist only
