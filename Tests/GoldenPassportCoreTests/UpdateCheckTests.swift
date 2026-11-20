@@ -34,8 +34,9 @@ struct UpdateCheckerTests {
     static let latestURL = URL(string: "https://api.example/releases/latest")!
     static let compatURL = URL(string: "https://download.example/compat.json")!
 
-    static func release(_ tag: String, compatAsset: Bool = true) -> Data {
-        let assets = compatAsset ? #"[{"name":"compat.json","browser_download_url":"\#(compatURL)"}]"# : "[]"
+    static func release(_ tag: String, compatAsset: Bool = true, extraAssets: [String] = []) -> Data {
+        let compat = compatAsset ? [#"{"name":"compat.json","browser_download_url":"\#(compatURL)"}"#] : []
+        let assets = "[" + (compat + extraAssets).joined(separator: ",") + "]"
         return Data(#"""
             {"tag_name":"\#(tag)","html_url":"https://github.com/o/r/releases/tag/\#(tag)","prerelease":false,"assets":\#(assets)}
             """#.utf8)
@@ -50,10 +51,52 @@ struct UpdateCheckerTests {
         }
     }
 
-    static func latest(_ tag: String, compat: String?) -> [URL: (status: Int, body: String)] {
-        var responses = [latestURL: (status: 200, body: String(decoding: release(tag, compatAsset: compat != nil), as: UTF8.self))]
+    static func latest(_ tag: String, compat: String?, extraAssets: [String] = []) -> [URL: (status: Int, body: String)] {
+        var responses = [latestURL: (status: 200, body: String(decoding: release(tag, compatAsset: compat != nil, extraAssets: extraAssets), as: UTF8.self))]
         if let compat { responses[compatURL] = (200, compat) }
         return responses
+    }
+
+    static func zipAsset(_ name: String = "GoldenPassport-0.2.4.zip", size: Int? = 3091969,
+                         digest: String? = "sha256:B83EF5219FF7B457DF78444D700105550D6EE9F3B404263A25D2289FDC42BABB") -> String {
+        var fields = [#""name":"\#(name)""#, #""browser_download_url":"https://download.example/gp.zip""#]
+        if let size { fields.append(#""size":\#(size)"#) }
+        if let digest { fields.append(#""digest":"\#(digest)""#) }
+        return "{" + fields.joined(separator: ",") + "}"
+    }
+
+    /// The package the check offers for v0.2.4 when the release has `assets` besides compat.json.
+    static func offeredPackage(_ assets: [String]) async throws -> UpdatePackage? {
+        let checker = try checker(current: "0.2.3", latest("v0.2.4", compat: #"{"dataFormat":1}"#, extraAssets: assets))
+        guard case .available(let update) = try await checker.check() else {
+            Issue.record("expected an update")
+            return nil
+        }
+        return update.package
+    }
+
+    @Test func offersThePackageWithSizeAndDigest() async throws {
+        #expect(try await Self.offeredPackage([Self.zipAsset()]) == UpdatePackage(
+            url: URL(string: "https://download.example/gp.zip")!, size: 3091969,
+            sha256: "b83ef5219ff7b457df78444d700105550d6ee9f3b404263a25d2289fdc42babb"))
+    }
+
+    @Test func ignoresOtherZipsAndUnknownDigests() async throws {
+        #expect(try await Self.offeredPackage([Self.zipAsset("GoldenPassport-0.2.4-beta.1.zip"),
+                                               Self.zipAsset("GoldenPassport-0.2.3.zip")]) == nil)
+        let md5 = try await Self.offeredPackage([Self.zipAsset(digest: "md5:abc")])
+        #expect(md5?.sha256 == nil)
+        #expect(md5?.size == 3091969)
+        #expect(try await Self.offeredPackage([Self.zipAsset(digest: "sha256:xyz")])?.sha256 == nil)
+        let bare = try await Self.offeredPackage([Self.zipAsset(size: nil, digest: nil)])
+        #expect(bare == UpdatePackage(url: URL(string: "https://download.example/gp.zip")!, size: nil, sha256: nil))
+    }
+
+    @Test func feedURLComesFromTheEnvironment() {
+        #expect(UpdateChecker.feedURL(environment: [:]) == UpdateChecker.latestReleaseURL)
+        #expect(UpdateChecker.feedURL(environment: ["GP_UPDATE_FEED_URL": ""]) == UpdateChecker.latestReleaseURL)
+        #expect(UpdateChecker.feedURL(environment: ["GP_UPDATE_FEED_URL": "http://127.0.0.1:8765/latest.json"])
+            == URL(string: "http://127.0.0.1:8765/latest.json"))
     }
 
     @Test func noReleaseYetIsUpToDate() async throws {

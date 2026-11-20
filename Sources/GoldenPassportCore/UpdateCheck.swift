@@ -54,6 +54,21 @@ public struct ReleaseCompatibility: Decodable, Equatable, Sendable {
     public var minUpgradeFrom: String?
 }
 
+/// The release zip, as attached to the release (`GoldenPassport-<version>.zip`).
+public struct UpdatePackage: Equatable, Sendable {
+    public var url: URL
+    /// From GitHub's asset metadata; nil when it was not reported.
+    public var size: Int?
+    /// Lowercase hex SHA-256 from GitHub's asset `digest` ("sha256:…"); nil when absent or in another form.
+    public var sha256: String?
+
+    public init(url: URL, size: Int?, sha256: String?) {
+        self.url = url
+        self.size = size
+        self.sha256 = sha256
+    }
+}
+
 public struct AvailableUpdate: Equatable, Sendable {
     public enum Notice: Equatable, Sendable {
         /// The release converts the accounts to a newer data format.
@@ -67,6 +82,8 @@ public struct AvailableUpdate: Equatable, Sendable {
     public var version: String
     public var releasePage: URL
     public var notices: [Notice]
+    /// The zip to install from the app; nil when the release has none under the expected name.
+    public var package: UpdatePackage? = nil
 }
 
 public enum UpdateCheckResult: Equatable, Sendable {
@@ -94,6 +111,20 @@ public struct UpdateChecker: Sendable {
 
     /// Drafts and pre-releases are never returned as "latest".
     public static let latestReleaseURL = URL(string: "https://api.github.com/repos/thatscode/GoldenPassport/releases/latest")!
+
+    /// The release asset the app installs (docs/compatibility.md, section 6).
+    public static func packageAssetName(for version: AppVersion) -> String {
+        "GoldenPassport-\(version).zip"
+    }
+
+    /// `GP_UPDATE_FEED_URL` points the check at another latest-release document, for testing the
+    /// update flow end to end. Whatever it serves still has to pass the signature check.
+    public static func feedURL(environment: [String: String]) -> URL {
+        guard let text = environment["GP_UPDATE_FEED_URL"], !text.isEmpty, let url = URL(string: text) else {
+            return latestReleaseURL
+        }
+        return url
+    }
 
     private let currentVersion: AppVersion
     /// The data format this build stores accounts in (`AppEnvironment.dataFormat`).
@@ -123,7 +154,23 @@ public struct UpdateChecker: Sendable {
         guard currentVersion < latest else { return .upToDate }
         let compatibility = await self.compatibility(of: release)
         return .available(AvailableUpdate(version: latest.description, releasePage: release.htmlURL,
-                                          notices: notices(for: compatibility, of: release)))
+                                          notices: notices(for: compatibility, of: release),
+                                          package: package(of: release, version: latest)))
+    }
+
+    private func package(of release: GitHubRelease, version: AppVersion) -> UpdatePackage? {
+        let name = Self.packageAssetName(for: version)
+        guard let asset = release.assets.first(where: { $0.name == name }) else { return nil }
+        return UpdatePackage(url: asset.browserDownloadURL, size: asset.size, sha256: asset.digest.flatMap { Self.sha256(fromDigest: $0) })
+    }
+
+    /// "sha256:<64 hex digits>" → the digits in lowercase; anything else → nil.
+    private static func sha256(fromDigest digest: String) -> String? {
+        let prefix = "sha256:"
+        guard digest.lowercased().hasPrefix(prefix) else { return nil }
+        let hex = digest.dropFirst(prefix.count).lowercased()
+        guard hex.count == 64, hex.allSatisfy({ $0.isHexDigit }) else { return nil }
+        return hex
     }
 
     private func compatibility(of release: GitHubRelease) async -> ReleaseCompatibility? {
@@ -174,10 +221,13 @@ struct GitHubRelease: Decodable {
     struct Asset: Decodable {
         let name: String
         let browserDownloadURL: URL
+        let size: Int?
+        let digest: String?
 
         enum CodingKeys: String, CodingKey {
             case name
             case browserDownloadURL = "browser_download_url"
+            case size, digest
         }
     }
 
