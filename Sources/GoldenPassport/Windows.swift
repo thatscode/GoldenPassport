@@ -14,6 +14,8 @@ class HostedWindowController: NSObject, NSWindowDelegate {
 
     var title: String { "" }
     var resizable: Bool { false }
+    /// On screen right now (an update must not quit with input still in it).
+    var isShowing: Bool { window?.isVisible == true }
 
     func present() {
         if window == nil {

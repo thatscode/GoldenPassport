@@ -26,6 +26,7 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
     private let updateItem = NSMenuItem()
     private let noticeSeparator = NSMenuItem.separator()
     private var automaticUpdatesItem: NSMenuItem!
+    private var checkForUpdatesItem: NSMenuItem!
 
     private var refreshTimer: Timer?
     private var deleteMode = false
@@ -36,6 +37,13 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
     private var availableUpdate: AvailableUpdate?
     private var lastUpdateCheck: Date?
     private var updateTimer: Timer?
+    /// While an update downloads and installs, no other check or dialog starts.
+    private var isUpdating = false
+    private lazy var updateController = UpdateController(appVersion: appVersion, hasOpenWindows: { [weak self] in
+        self?.hasOpenWindows ?? false
+    }, onBusyChange: { [weak self] busy in
+        self?.setUpdating(busy)
+    })
     /// Changes made in 0.1.x after the migration that the user hasn't dealt with yet (I6).
     private var legacyChanges: LegacyChanges?
 
@@ -68,6 +76,7 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         let version = AppVersion(bundleInfo: Bundle.main.infoDictionary ?? [:]) ?? AppVersion("0")!
         appVersion = version.description
         updateChecker = UpdateChecker(currentVersion: version, dataFormat: dataFormat,
+                                      latestReleaseURL: UpdateChecker.feedURL(environment: ProcessInfo.processInfo.environment),
                                       fetch: UpdateChecker.networkFetch(appVersion: appVersion))
         super.init()
 
@@ -173,9 +182,9 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         languageItem.submenu = languageMenu
 
         menu.addItem(.separator())
-        menu.addItem(item(String(localized: "检查更新…"), #selector(checkForUpdatesClicked)))
+        checkForUpdatesItem = add(item(String(localized: "检查更新…"), #selector(checkForUpdatesClicked)))
         automaticUpdatesItem = add(item(String(localized: "每天自动检查更新"), #selector(automaticUpdatesClicked)))
-        automaticUpdatesItem.toolTip = String(localized: "每天向 GitHub 查询一次最新版本。请求里只有 App 的版本号，不含账号信息。")
+        automaticUpdatesItem.toolTip = String(localized: "每天向 GitHub 查询一次最新版本。请求里只有 App 的版本号，不含账号信息。只有点了「下载并安装」才会下载。")
         menu.addItem(item(String(localized: "帮助"), #selector(helpClicked), key: "h"))
         menu.addItem(item(String(localized: "退出"), #selector(quitClicked), key: "q"))
     }
@@ -581,6 +590,7 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
     /// Automatic checks stay quiet: a newer release only shows up as an item at the top of the menu.
     @MainActor
     private func checkForUpdates(userInitiated: Bool) async {
+        guard !isUpdating else { return }
         do {
             let result = try await updateChecker.check()
             lastUpdateCheck = Date()
@@ -602,34 +612,21 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         }
     }
 
-    /// Only points to the release page: installing goes through install.sh, which backs up first.
+    /// Installing from the app, or pointing to the release page when it can't (UpdateController).
     private func presentUpdate(_ update: AvailableUpdate) {
-        let alert = NSAlert()
-        alert.messageText = String(localized: "GoldenPassport \(update.version) 已发布")
-        var paragraphs = [String(localized: "你现在使用的是 \(appVersion)。")]
-        var page = update.releasePage
-        var pageButton = String(localized: "查看发布页面")
-        for notice in update.notices {
-            switch notice {
-            case .dataFormatChange:
-                alert.alertStyle = .warning
-                paragraphs.append(String(localized: "⚠️ 这个版本会把账号数据转换为新格式，升级后在新版本里所做的修改，旧版本看不到。请先导出备份，再用安装包里的 install.sh 安装，它会先备份数据。"))
-            case .upgradeFirst(let version, let releasePage):
-                alert.alertStyle = .warning
-                paragraphs.append(String(localized: "⚠️ 不能从当前版本直接升级到 \(update.version)，请先升级到 \(version)。"))
-                page = releasePage
-                pageButton = String(localized: "查看 \(version) 的发布页面")
-            case .compatibilityUnknown:
-                paragraphs.append(String(localized: "无法确认这个版本的兼容性，升级前请先阅读发布说明。"))
-            }
-        }
-        alert.informativeText = paragraphs.joined(separator: "\n\n")
-        alert.addButton(withTitle: pageButton)
-        alert.addButton(withTitle: String(localized: "稍后"))
-        activateApp()
-        if alert.runModal() == .alertFirstButtonReturn {
-            NSWorkspace.shared.open(page)
-        }
+        guard !isUpdating else { return }
+        updateController.present(update)
+    }
+
+    private func setUpdating(_ busy: Bool) {
+        isUpdating = busy
+        checkForUpdatesItem.isEnabled = !busy
+        updateItem.isEnabled = !busy
+    }
+
+    /// Windows whose unsaved input would be lost when the old copy quits for the new one.
+    private var hasOpenWindows: Bool {
+        [addWindow, manageWindow, portWindow, legacyWindow].contains { $0.isShowing }
     }
 
     // MARK: - Changes made in 0.1.x (I6)
