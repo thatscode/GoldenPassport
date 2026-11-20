@@ -5,6 +5,18 @@ English | [简体中文](CHANGELOG.zh-CN.md)
 Notable changes in each release of this fork. Versions 0.1.0 to 0.1.7 were released by the
 original project; see [its releases](https://github.com/stanzhai/GoldenPassport/releases).
 
+## 0.2.3 (unreleased)
+
+### New features
+
+- **Install updates from the app.** When **Check for Updates…** finds a newer release, **Download
+  and Install** downloads it, checks that it is signed with the same Developer ID, notarized by
+  Apple and able to read your accounts, then replaces the app and opens the new version. The
+  previous version goes to the Trash. If any step fails, nothing is changed. Releases that change
+  the data format or need an intermediate upgrade, and copies the app can't replace (for example
+  one opened straight from the Downloads folder), still go through `install.sh`. Updating to 0.2.3
+  itself needs `install.sh` once.
+
 ## 0.2.2 (2026-11-20)
 
 ### Fixes

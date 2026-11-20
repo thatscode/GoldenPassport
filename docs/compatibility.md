@@ -143,6 +143,16 @@ GoldenPassport 保存的是 MFA 密钥。数据一旦丢失，用户可能被锁
 
 只有确实需要分步升级时才设置 `minUpgradeFrom`，例如新版本删除了某个旧格式的迁移代码。按 3.2 的规则，新版本应当尽量保留对所有旧格式的迁移能力。
 
+### 5.3 在 App 里安装
+
+从 0.2.3 起，「检查更新」发现新版本后，下面的条件全部满足才提供「下载并安装」，否则只给发布页面，并说明原因（设计见 [design/in-app-update.md](design/in-app-update.md)）：
+
+- 属于上表的「普通更新提示」：`compat.json` 读得到，`dataFormat` 和本机相同，本机版本不低于 `minUpgradeFrom`；
+- Release 有名为 `GoldenPassport-<版本号>.zip` 的附件，里面是 `GoldenPassport-<版本号>/GoldenPassport.app`；
+- 运行中的 App 是 Developer ID 签名的正式版，没有被系统隔离运行，当前账号能替换它。
+
+替换前依次校验：下载包的大小和 SHA-256（GitHub 提供时）；签名（同一个 Team ID 的 Developer ID，并经过公证）；Info.plist（bundle id、版本号、数据目录、钥匙串服务名、最低系统版本、架构）；再用新版本的 `--migrate-data` 核对数据，要求存储方式和本机一致。任何一项没通过都不做改动。3.2 的不可逆变更永远不在 App 里安装。
+
 ## 6. 发布前检查清单
 
 每次发布前逐项确认：
@@ -154,6 +164,7 @@ GoldenPassport 保存的是 MFA 密钥。数据一旦丢失，用户可能被锁
 - [ ] 改了默认值吗？已有用户的行为是否保持不变（3.4）？
 - [ ] tag 是否为 `vX.Y.Z`？预发布版本是否勾选了 pre-release？「latest」是否指向版本号最高的正式版？
 - [ ] 是否上传了 `compat.json`，内容是否和这个版本一致？
+- [ ] 安装包附件是否叫 `GoldenPassport-<版本号>.zip`，App 是否经过公证并装订了票据？否则 App 内更新会退回发布页面，或者在校验时失败（5.3）。
 
 ## 7. 实施事项
 

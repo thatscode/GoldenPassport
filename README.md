@@ -74,7 +74,7 @@ release.
 0.2.1 fixes the menu bar icon, which showed only a tiny figure, stops a second copy of the app
 from running next to the first, and moves to the bundle ID `com.thatscode.GoldenPassport`. 0.2.2
 keeps the menu bar icon where it was when you upgrade, so that it can't vanish from a crowded
-menu bar.
+menu bar. From 0.2.3 on, **Check for Updates…** can download and install a new release for you.
 
 ### New features
 
@@ -94,8 +94,9 @@ menu bar.
   accepts both this format and `.secrets` backups ([#10](https://github.com/stanzhai/GoldenPassport/issues/10), [#30](https://github.com/stanzhai/GoldenPassport/issues/30)).
 - **Launch at login** toggle.
 - **Update check**: **Check for Updates…** asks GitHub whether a newer release is out, and
-  **Check for Updates Daily** does so once a day (off by default). If a release changes the data
-  format or needs an intermediate upgrade first, the prompt says so before you install anything.
+  **Check for Updates Daily** does so once a day (off by default). From 0.2.3 on, **Download and
+  Install** updates the app in place (see [Updating](#updating)). If a release changes the data
+  format or needs an intermediate upgrade first, the prompt says so and points to `install.sh`.
 - The account name is suggested from the otpauth URL label, and pasted URLs are trimmed ([#26](https://github.com/stanzhai/GoldenPassport/issues/26)).
 - **Installer with a safety net**: `install.sh` backs up the app and data, checks every migrated
   account and restores the previous app and data automatically if a check fails. `rollback.sh`
@@ -130,7 +131,8 @@ menu bar.
   **Check for Updates…**, or turn on **Check for Updates Daily** (off by default). The check asks
   GitHub's API for the latest release and, if it is newer, downloads a small compatibility file
   attached to it. Requests identify themselves only as `GoldenPassport/<version>` and carry no
-  cookies or account information. New versions are never downloaded or installed automatically.
+  cookies or account information. A new version is downloaded only when you click **Download and
+  Install**, and installed only if it is signed with the same Developer ID and notarized by Apple.
 - The HTTP API listens on 127.0.0.1 only and rejects requests with a foreign `Host` header
   ([#6](https://github.com/stanzhai/GoldenPassport/issues/6)), so web pages cannot read your codes through DNS rebinding.
 - Data files are owner-only: the data directory is `0700` and files are `0600`. 0.1.x left them
@@ -157,6 +159,27 @@ downloaded app.
 > [!NOTE]
 > The Homebrew cask (`brew install --cask goldenpassport`) still points to the old 0.1.7 and has
 > been disabled by Homebrew. Bringing it back is on the [roadmap](#roadmap).
+
+### Updating
+
+From 0.2.3 on, when **Check for Updates…** finds a newer release, click **Download and Install**.
+GoldenPassport then:
+
+1. downloads the release from GitHub;
+2. checks that it is the version offered, signed with the same Developer ID and notarized by Apple;
+3. checks that the new version reads your accounts (macOS may ask once for Keychain access:
+   choose **Always Allow**);
+4. moves the current version to the Trash, puts the new one in its place and opens it.
+
+If any step fails, nothing is changed and you keep using the current version. To go back, quit
+GoldenPassport, move the new version out of the Applications folder and put the previous one back
+from the Trash.
+
+GoldenPassport offers this only when it can do it safely. It points you to the release page and
+`install.sh` (which backs up first) instead when the release changes the data format or needs an
+intermediate upgrade, when GoldenPassport runs from a place it can't replace (for example straight
+from the Downloads folder: move it to Applications first), or when your macOS account can't
+change it. Versions up to 0.2.2 don't have this button: install 0.2.3 once as described below.
 
 ### Upgrading from 0.1.x, or installing fresh (recommended)
 
@@ -237,7 +260,7 @@ Click the key icon in the menu bar. Each account shows its current code; click o
 | Global Hotkeys | Choose the modifier keys for the hotkeys, or turn them off |
 | Launch at Login | Launch GoldenPassport at login |
 | Language / 语言 | System Default, or always 简体中文 or English (restarts the app) |
-| Check for Updates… | Ask GitHub now whether a newer release is out |
+| Check for Updates… | Ask GitHub now whether a newer release is out; from 0.2.3 on, download and install it |
 | Check for Updates Daily | Check once a day; a newer release appears at the top of the menu (off by default) |
 | Help (⌘H) | Open this README on GitHub, in the language the menu is in |
 

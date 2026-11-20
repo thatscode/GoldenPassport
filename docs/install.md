@@ -52,6 +52,15 @@ Upgrading from a beta moves the accounts it has into the Keychain, so they stay 
 You can also copy `GoldenPassport.app` to `/Applications` yourself. Your data is then migrated on
 first launch, but you get no backup and no migration check.
 
+## Updating from within the app
+
+From 0.2.3 on, most updates don't need this folder: when **Check for Updates…** finds a newer
+release, click **Download and Install**. GoldenPassport checks the download's signature and that
+the new version reads your accounts before it replaces anything, moves the previous version to the
+Trash and opens the new one. If a check fails, nothing is changed. It points you back to
+`install.sh` when a release changes the data format or needs an intermediate upgrade, when
+GoldenPassport runs from a place it can't replace, or when your macOS account can't change it.
+
 ## After installing
 
 - **Where your accounts are**: in your login Keychain, in an item named **GoldenPassport** that
