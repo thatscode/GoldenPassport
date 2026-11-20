@@ -7,6 +7,12 @@ enum GoldenPassportApp {
         if CommandLine.arguments.contains("--migrate-data") {
             exit(runMigrateData(Array(CommandLine.arguments.dropFirst())))
         }
+        // Started by an update installed from the app: give the old copy up to 10 seconds to quit,
+        // then the single-copy check runs as usual (docs/design/in-app-update.md, 5.5).
+        let update = UpdateLaunchArguments(arguments: CommandLine.arguments)
+        if let oldProcess = update.oldProcessID {
+            _ = UpdateLaunchArguments.waitForExit(of: oldProcess)
+        }
         // The language chosen in the menu and the menu bar icon's position live in the defaults of
         // the bundle id; carry them over from the old one (0.1.x, 0.2.0) before anything is
         // localized and before the status item is created.
@@ -14,7 +20,7 @@ enum GoldenPassportApp {
             LegacyPreferences.carryOver(from: legacyID, to: bundleID)
         }
         let app = NSApplication.shared
-        let delegate = AppDelegate()
+        let delegate = AppDelegate(updatedFrom: update.updatedFrom)
         app.delegate = delegate
         app.setActivationPolicy(.accessory)
         withExtendedLifetime(delegate) { app.run() }
@@ -41,6 +47,13 @@ enum GoldenPassportApp {
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusMenuController: StatusMenuController?
+    /// The version an in-app update replaced, when this copy was started by it.
+    private let updatedFrom: String?
+
+    init(updatedFrom: String?) {
+        self.updatedFrom = updatedFrom
+        super.init()
+    }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.mainMenu = makeMainMenu()
@@ -62,11 +75,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             NSApp.terminate(nil)
             return
         }
+        let settings = SettingsStore(directory: environment.dataDirectory, defaults: environment.defaults)
         statusMenuController = StatusMenuController(
             store: store,
-            settings: SettingsStore(directory: environment.dataDirectory, defaults: environment.defaults),
+            settings: settings,
             dataDirectory: environment.dataDirectory,
             dataFormat: environment.dataFormat)
+
+        // Whatever an update download left behind is no longer needed once a copy starts.
+        if let bundleIdentifier = Bundle.main.bundleIdentifier {
+            UpdateDownloader.clearCache(bundleIdentifier: bundleIdentifier)
+        }
+        if updatedFrom != nil, let version = AppVersion(bundleInfo: Bundle.main.infoDictionary ?? [:]) {
+            let hotkeysEnabled = settings.hotkeysEnabled
+            DispatchQueue.main.async {
+                UpdateController.showUpdatedNotice(version: version.description, hotkeysEnabled: hotkeysEnabled)
+            }
+        }
     }
 
     /// Another running copy of this app, under this bundle id or the one 0.1.x and 0.2.0 used.

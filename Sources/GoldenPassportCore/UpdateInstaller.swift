@@ -175,8 +175,14 @@ public struct UpdateLaunchArguments: Equatable, Sendable {
         (oldProcessID.map { ["--after-update", String($0)] } ?? []) + (updatedFrom.map { ["--updated-from", $0] } ?? [])
     }
 
+    /// Whether a process with this id exists. EPERM means it does, only under another user.
+    public static func processExists(_ pid: Int32) -> Bool {
+        kill(pid, 0) == 0 || errno == EPERM
+    }
+
     /// Polls until `isRunning` says the process is gone (true) or `timeout` passes (false).
-    public static func waitForExit(of pid: Int32, timeout: TimeInterval = 10, isRunning: (Int32) -> Bool) -> Bool {
+    public static func waitForExit(of pid: Int32, timeout: TimeInterval = 10,
+                                   isRunning: (Int32) -> Bool = UpdateLaunchArguments.processExists) -> Bool {
         let deadline = Date().addingTimeInterval(timeout)
         while isRunning(pid) {
             if Date() >= deadline { return false }

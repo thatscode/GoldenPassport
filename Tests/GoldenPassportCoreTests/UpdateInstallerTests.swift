@@ -178,6 +178,15 @@ struct UpdateInstallerTests {
         #expect(checks == 4)
     }
 
+    @Test func processExistsCountsProcessesOfOtherUsers() throws {
+        #expect(UpdateLaunchArguments.processExists(getpid()))
+        // launchd runs as root: kill(1, 0) fails with EPERM, yet the process is there.
+        #expect(UpdateLaunchArguments.processExists(1))
+        let finished = try ProcessRunner.run(URL(fileURLWithPath: "/bin/sh"), ["-c", "echo $$"], timeout: 10)
+        let pid = try #require(Int32(finished.output.trimmingCharacters(in: .whitespacesAndNewlines)))
+        #expect(!UpdateLaunchArguments.processExists(pid))
+    }
+
     @Test func givesUpAfterTheTimeout() {
         let start = Date()
         #expect(!UpdateLaunchArguments.waitForExit(of: 42, timeout: 0.3) { _ in true })
