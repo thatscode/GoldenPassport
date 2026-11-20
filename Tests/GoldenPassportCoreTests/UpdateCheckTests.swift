@@ -197,17 +197,10 @@ private final class ReceivedHeaders: @unchecked Sendable {
 @Suite(.serialized)
 struct UpdateRequestTests {
     @Test func identifiesOnlyAsGoldenPassport() async throws {
-        let port = UInt16.random(in: 40000...60000)
         let received = ReceivedHeaders()
-        let server = LocalHTTPServer(port: port) { request in
+        let (server, port) = try await startLocalHTTPServer { request in
             received.value = request.headers
             return .text("{}")
-        }
-        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
-            server.onStateChange = { state in
-                if state == .running { continuation.resume() }
-            }
-            server.start()
         }
         defer { server.stop() }
 

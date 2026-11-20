@@ -58,14 +58,7 @@ struct CodeAPITests {
 @Suite(.serialized)
 struct LocalHTTPServerTests {
     @Test func servesOverLoopback() async throws {
-        let port = UInt16.random(in: 40000...60000)
-        let server = LocalHTTPServer(port: port) { _ in .text("hello") }
-        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
-            server.onStateChange = { state in
-                if state == .running { continuation.resume() }
-            }
-            server.start()
-        }
+        let (server, port) = try await startLocalHTTPServer { _ in .text("hello") }
         defer { server.stop() }
 
         let (data, response) = try await URLSession.shared.data(from: URL(string: "http://127.0.0.1:\(port)/")!)
