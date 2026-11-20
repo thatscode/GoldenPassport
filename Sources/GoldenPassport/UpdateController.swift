@@ -258,6 +258,9 @@ final class UpdateProgressPanel: NSObject {
         panel.title = String(localized: "正在更新 GoldenPassport")
         panel.isReleasedWhenClosed = false
         panel.level = .floating
+        // Panels hide when their app is inactive, which a menu bar app nearly always is: the
+        // progress and the Cancel button would be gone as soon as the user clicks elsewhere.
+        panel.hidesOnDeactivate = false
         cancelButton.target = self
         cancelButton.action = #selector(cancelClicked)
         cancelButton.keyEquivalent = "\u{1b}"
