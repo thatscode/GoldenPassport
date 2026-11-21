@@ -63,6 +63,7 @@ macOS 菜单栏上的原生 Google Authenticator（谷歌身份验证器）。�
 - **英文界面**：0.1.x 的菜单只有中文。新版默认跟随系统语言，也可以在菜单「语言 / Language」里固定为简体中文或英文。
 - **管理窗口**（⌘M）：拖动或用上下箭头调整顺序，双击重命名，右键修改 URL 或删除（[#12](https://github.com/stanzhai/GoldenPassport/issues/12)、[#17](https://github.com/stanzhai/GoldenPassport/issues/17)、[#29](https://github.com/stanzhai/GoldenPassport/issues/29)）。
 - **全局快捷键可配置**：⌃⌥⌘0–9（新的默认值）、⇧⌘0–9（0.1.x 的方式）、⌃⌥0–9，或者关闭。改为系统级注册，按键不会再同时传给当前 App（[#4](https://github.com/stanzhai/GoldenPassport/issues/4)、[#11](https://github.com/stanzhai/GoldenPassport/issues/11)、[#18](https://github.com/stanzhai/GoldenPassport/issues/18)）。
+- **加密备份**（`.gpbackup`）：导出时用你设置的密码保护账号，导入时输入同一个密码即可恢复。
 - **导出 otpauth URL 列表**（`.txt`），可以导入其他验证器 App。导入同时支持这种格式和 `.secrets` 备份文件（[#10](https://github.com/stanzhai/GoldenPassport/issues/10)、[#30](https://github.com/stanzhai/GoldenPassport/issues/30)）。
 - **开机自动启动**开关。
 - **检查更新**：「检查更新…」向 GitHub 查询有没有新版本，「每天自动检查更新」每天查询一次（默认关闭）。从 0.2.3 起，点「下载并安装」就能直接更新（见[更新](#更新)）。如果新版本会改变数据格式，或者需要先升级到某个中间版本，提示里会写明，并引导你改用 `install.sh`。
@@ -87,7 +88,7 @@ macOS 菜单栏上的原生 Google Authenticator（谷歌身份验证器）。�
 - GoldenPassport 只在检查更新时联网，而且只在你要求时才检查：点「检查更新…」，或者打开「每天自动检查更新」（默认关闭）。检查时会向 GitHub 的接口查询最新版本；如果比当前版本新，还会下载这个版本附带的一个兼容性说明小文件。请求只以 `GoldenPassport/<版本号>` 标识自己，不带 Cookie，也不带任何账号信息。只有点了「下载并安装」才会下载新版本，而且只有确认它由同一个 Developer ID 签名、并经过 Apple 公证，才会安装。
 - HTTP 接口只监听 127.0.0.1，并拒绝 `Host` 头不是本机的请求（[#6](https://github.com/stanzhai/GoldenPassport/issues/6)），网页无法通过 DNS 重绑定读取你的验证码。
 - 数据文件仅本人可读：数据目录权限为 `0700`，文件为 `0600`。0.1.x 的文件本机所有用户都能读，0.2.0 会收紧已有文件的权限，但不改动文件内容。
-- 两种导出格式在导出前都会提示：文件里是未加密的全部密钥。
+- 加密备份（`.gpbackup`）用你设置的密码保护（AES-256-GCM，密钥由 PBKDF2-HMAC-SHA256 迭代 600,000 次派生）：没有密码就读不出内容，GoldenPassport 也不保存密码。另外两种导出格式（`.secrets`、`.txt`）不加密，导出前会提示。
 - 复制的验证码不会一直留在剪贴板里。它们带有「机密内容」标记，遵循这个标记的剪贴板工具（比如 Maccy）不会把它们记进历史；验证码过期后（大多数账号是复制后 30 到 60 秒）会从剪贴板清除，期间复制过别的内容则不动。退出 GoldenPassport 时会立刻清除。
 - 密钥副本可能存在的所有位置，见[数据与安全](#数据与安全)。
 
@@ -168,7 +169,8 @@ macOS 菜单栏上的原生 Google Authenticator（谷歌身份验证器）。�
 | 添加…（⌘A） | 通过 otpauth URL 或二维码图片添加账号 |
 | 管理（排序 / 重命名）…（⌘M） | 调整顺序、重命名、修改 URL、删除账号 |
 | 删除（⌘D） | 删除账号，删除前会确认 |
-| 导入…（⌘I） | 导入 `.secrets` 备份文件或 otpauth URL 列表；已存在的名称会跳过 |
+| 导入…（⌘I） | 导入加密备份（`.gpbackup`，会要求输入密码）、`.secrets` 备份文件或 otpauth URL 列表；已存在的名称会跳过 |
+| 导出 → 加密备份（.gpbackup）（⌘E） | 用密码保护的备份，只有 GoldenPassport 能读取 |
 | 导出 → 备份文件（.secrets） | 新旧版本都能导入的备份 |
 | 导出 → otpauth URL 列表（.txt） | 每个账号一行 otpauth URL，可导入其他验证器 App |
 | HTTP 接口 | 开启或停止本地接口、设置随启动开启、在浏览器中打开、修改端口 |
@@ -205,9 +207,9 @@ echo "$code"
 > - **安装脚本的备份**：`install.sh` 会把整个数据目录复制到 `~/GoldenPassport-backups/<时间>/`，用于回退。这是全部密钥的明文副本（权限为仅本人可读）。不要分享或同步它，确认不再需要回退后请删除（用 `cleanup.sh`，见[升级后的清理](#升级后的清理)）。
 > - **旧版数据文件**：迁移后 `gp.secrets` 会保留在数据目录里，旧版才能继续使用。它之后不再更新，所以**你在 0.2.x 里删除的账号，密钥仍然留在这个文件里**。确定不会再回到 0.1.x 后，请删除它（用 `cleanup.sh`）。
 > - **内测版的数据文件**：0.2.0 把账号迁移到钥匙串后，内测版的 `accounts.json` 仍以明文留在数据目录里，供回退使用。确定不会再回到内测版后，请删除它（用 `cleanup.sh`）。
-> - **导出文件**：`.secrets` 和 `.txt` 两种导出文件都包含未加密的全部密钥。
+> - **未加密的导出文件**：`.secrets` 和 `.txt` 两种导出文件都包含未加密的全部密钥。加密备份（`.gpbackup`）的安全取决于密码。
 
-GoldenPassport 把账号列表存在登录钥匙串里一个名为 **GoldenPassport** 的条目中。它只存在这台 Mac 上（不通过 iCloud 钥匙串同步），别的程序要读取时系统会先弹框询问。钥匙串不改变 HTTP 接口和导出文件：接口开启期间，以你的身份运行的任何程序仍然能读取全部验证码，导出文件仍然是明文。
+GoldenPassport 把账号列表存在登录钥匙串里一个名为 **GoldenPassport** 的条目中。它只存在这台 Mac 上（不通过 iCloud 钥匙串同步），别的程序要读取时系统会先弹框询问。钥匙串不改变 HTTP 接口和导出文件：接口开启期间，以你的身份运行的任何程序仍然能读取全部验证码，`.secrets` 和 `.txt` 导出文件仍然是明文。
 
 数据目录 `~/Library/Application Support/GoldenPassport/` 只有你本人能读：0.2.0 会把目录权限设为 `0700`、文件设为 `0600`（0.1.x 的文件本机所有用户都能读）。除了上面列出的旧数据文件，这里没有密钥：`accounts-v2.json` 只说明账号存在钥匙串里，`settings.json` 保存设置，`legacy-baseline.json` 记录 `gp.secrets` 里有哪些账号（只有名称和 URL 的指纹，不含密钥），用来发现回退期间在 0.1.x 里做的改动。
 
@@ -225,7 +227,7 @@ GoldenPassport 把账号列表存在登录钥匙串里一个名为 **GoldenPassp
 
 1. **保留损坏的文件**：给它改个名字，例如 `accounts.damaged.json`，不要删除。
 2. **如果有 `accounts.json` 的备份**，把它复制回数据目录，再启动 GoldenPassport。备份可以来自时间机器（Time Machine），也可以来自 `~/GoldenPassport-backups/<时间>/data/`：如果你在已经装了 0.2.x 的情况下运行过 `install.sh`，那里保存着那次安装时的账号。
-3. **如果只有导出文件**（`.secrets` 或 `.txt`）：数据目录里如果有 `gp.secrets`，先把它也暂时移出去。然后启动 GoldenPassport（这时列表是空的），导入导出文件。如果还想保留回退到 0.1.x 的可能，导入后再把 `gp.secrets` 放回去。不先移走的话，GoldenPassport 会先用 `gp.secrets` 重建列表（也就是你从 0.1.x 升级那一刻的账号），而导入会跳过所有同名的账号，留下的就是这些旧记录。
+3. **如果只有导出文件**（`.gpbackup`、`.secrets` 或 `.txt`）：数据目录里如果有 `gp.secrets`，先把它也暂时移出去。然后启动 GoldenPassport（这时列表是空的），导入导出文件。如果还想保留回退到 0.1.x 的可能，导入后再把 `gp.secrets` 放回去。不先移走的话，GoldenPassport 会先用 `gp.secrets` 重建列表（也就是你从 0.1.x 升级那一刻的账号），而导入会跳过所有同名的账号，留下的就是这些旧记录。
 4. **如果两者都没有**，但数据目录里还有 `gp.secrets`：做完第 1 步后直接启动 GoldenPassport。它会用 `gp.secrets` 重建列表，恢复到你从 0.1.x 升级那一刻的账号；之后新增或修改的账号，用这个方法找不回来。
 
 如果提示里写的是 `gp.secrets`，说明 0.1.x 的数据文件损坏了，里面的账号无法迁移。把它移出数据目录，再按上面的方法用备份或导出文件恢复。

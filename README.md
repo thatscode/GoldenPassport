@@ -90,6 +90,8 @@ menu bar. From 0.2.3 on, **Check for Updates…** can download and install a new
   right-click to edit the URL or delete ([#12](https://github.com/stanzhai/GoldenPassport/issues/12), [#17](https://github.com/stanzhai/GoldenPassport/issues/17), [#29](https://github.com/stanzhai/GoldenPassport/issues/29)).
 - **Configurable global hotkeys**: ⌃⌥⌘0–9 (new default), ⇧⌘0–9 (as in 0.1.x), ⌃⌥0–9, or off.
   Registered system-wide, so the keystroke no longer also reaches the frontmost app ([#4](https://github.com/stanzhai/GoldenPassport/issues/4), [#11](https://github.com/stanzhai/GoldenPassport/issues/11), [#18](https://github.com/stanzhai/GoldenPassport/issues/18)).
+- **Encrypted backups** (`.gpbackup`): export your accounts protected by a password you choose,
+  and import them again with that password.
 - **Export as an otpauth URL list** (`.txt`) that other authenticator apps can import; import
   accepts both this format and `.secrets` backups ([#10](https://github.com/stanzhai/GoldenPassport/issues/10), [#30](https://github.com/stanzhai/GoldenPassport/issues/30)).
 - **Launch at login** toggle.
@@ -137,7 +139,10 @@ menu bar. From 0.2.3 on, **Check for Updates…** can download and install a new
   ([#6](https://github.com/stanzhai/GoldenPassport/issues/6)), so web pages cannot read your codes through DNS rebinding.
 - Data files are owner-only: the data directory is `0700` and files are `0600`. 0.1.x left them
   readable by every local user; 0.2.0 tightens the existing files without changing them.
-- Both export formats warn that the file contains every secret unencrypted.
+- Encrypted backups (`.gpbackup`) are protected by a password you choose (AES-256-GCM with a key
+  derived by PBKDF2-HMAC-SHA256 over 600,000 iterations). Without the password the file can't be
+  read, and GoldenPassport doesn't keep it. The other two export formats (`.secrets`, `.txt`) are
+  unencrypted and warn about it before exporting.
 - Copied codes don't linger on the clipboard. They are marked as confidential, so clipboard
   managers that honor that marker (Maccy, for example) leave them out of their history, and they
   are removed once they expire, 30 to 60 seconds after copying for most accounts, unless you have
@@ -262,7 +267,8 @@ Click the key icon in the menu bar. Each account shows its current code; click o
 | Add… (⌘A) | Add an account from an otpauth URL or a QR code image |
 | Manage (Reorder / Rename)… (⌘M) | Reorder, rename, edit or delete accounts |
 | Delete (⌘D) | Delete an account (asks for confirmation) |
-| Import… (⌘I) | Import a `.secrets` backup or an otpauth URL list; existing names are skipped |
+| Import… (⌘I) | Import an encrypted backup (`.gpbackup`, asks for its password), a `.secrets` backup or an otpauth URL list; existing names are skipped |
+| Export → Encrypted Backup (.gpbackup) (⌘E) | Backup protected by a password; only GoldenPassport can read it |
 | Export → Backup File (.secrets) | Backup readable by both 0.1.x and 0.2.x |
 | Export → otpauth URL List (.txt) | One otpauth URL per account, for other authenticator apps |
 | HTTP API | Start or stop the local API, start it at launch, open it in the browser, change the port |
@@ -311,13 +317,14 @@ echo "$code"
 > - **Beta data file**: after 0.2.0 moves your accounts into the Keychain, a beta's
 >   `accounts.json` stays in the data directory, unencrypted, so that you can roll back. Delete it
 >   with `cleanup.sh` once you won't go back to the beta.
-> - **Exports**: both `.secrets` and `.txt` exports contain every secret unencrypted.
+> - **Unencrypted exports**: `.secrets` and `.txt` exports contain every secret unencrypted.
+>   Encrypted backups (`.gpbackup`) are as safe as their password.
 
 GoldenPassport keeps the account list in one item named **GoldenPassport** in your login
 Keychain. It stays on this Mac (it is not synced through iCloud Keychain), and other apps that
 ask for it get a macOS prompt first. The Keychain doesn't change the HTTP API or exports: while
-the API runs, anything running as you can still read every code, and exports are still
-unencrypted.
+the API runs, anything running as you can still read every code, and `.secrets` and `.txt`
+exports are still unencrypted.
 
 The data folder, `~/Library/Application Support/GoldenPassport/`, is readable only by you: 0.2.0
 restricts it to `0700` and its files to `0600` (0.1.x left them readable by every local user).
@@ -351,7 +358,7 @@ betas:
    GoldenPassport. Backups can come from Time Machine, or from
    `~/GoldenPassport-backups/<timestamp>/data/` if you ran `install.sh` while 0.2.x was already
    installed; that copy holds your accounts as they were at that install.
-3. **If you only have an export** (`.secrets` or `.txt`): if `gp.secrets` is in the data folder,
+3. **If you only have an export** (`.gpbackup`, `.secrets` or `.txt`): if `gp.secrets` is in the data folder,
    move it out for now as well. Start GoldenPassport, which now starts with an empty list, and
    import the export. Put `gp.secrets` back afterwards if you still want to be able to roll back
    to 0.1.x. Without this step, GoldenPassport would first rebuild the list from `gp.secrets` (your

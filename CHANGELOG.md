@@ -7,6 +7,15 @@ original project; see [its releases](https://github.com/stanzhai/GoldenPassport/
 
 ## 0.2.4 (unreleased)
 
+### New features
+
+- **Encrypted backups.** **Export → Encrypted Backup (.gpbackup)** (⌘E, moved from the
+  `.secrets` backup) asks for a password twice and saves your accounts, names and order included,
+  encrypted with AES-256-GCM under a key derived from the password (PBKDF2-HMAC-SHA256, 600,000
+  iterations). **Import…** opens these files after asking for the password; a wrong password or a
+  changed file imports nothing. GoldenPassport doesn't keep the password, so a forgotten one can't
+  be recovered. The unencrypted `.secrets` and `.txt` exports are still there.
+
 ### Security & privacy
 
 - **Copied codes don't linger on the clipboard.** Codes copied from the menu or typed by a hotkey

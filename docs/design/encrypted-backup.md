@@ -1,6 +1,6 @@
 # 加密备份：用密码保护导出的文件
 
-状态：设计已确认（2026-11-22），按第 4 节的做法 A 实施。
+状态：设计已确认（2026-11-22），按第 4 节的做法 A 实施；已实施（2026-11-22）。
 
 ## 1. 问题
 
@@ -98,7 +98,7 @@ UTF-8 编码的 JSON，扩展名 `.gpbackup`：
 ## 6. 代码位置
 
 - Core：`EncryptedBackup`（`seal(accounts:password:)` → `Data`，`open(_:password:)` → `[Account]`，错误类型 `EncryptedBackupError`），PBKDF2 和 AES-GCM 都在这里，可以完整地单元测试。
-- App：`StatusMenuController` 的导出菜单和导入流程；一个小的密码窗口（沿用 `HostedWindowController`）。
+- App：`StatusMenuController` 的导出菜单和导入流程；`PasswordPrompt` 用带密码输入框的提示框（`NSAlert`）询问密码，和现有导入导出的流程一样是模态的。
 - 界面文字的中英文翻译、README（菜单表、安全与隐私）、CHANGELOG。
 
 ## 7. 测试
