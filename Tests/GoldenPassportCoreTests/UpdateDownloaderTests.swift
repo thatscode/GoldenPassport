@@ -115,11 +115,8 @@ struct UpdateDownloaderTests {
         let url = Self.url()
         StubProtocol.register(.init(status: 404, chunks: [Data("Not Found".utf8)]), for: url)
         let directory = try makeTempDirectory()
-        await #expect {
+        await expectUpdateError("download") {
             _ = try await Self.downloader().download(UpdatePackage(url: url, size: nil, sha256: nil), into: directory) { _, _ in }
-        } throws: { error in
-            if case UpdateError.download = error { return true }
-            return false
         }
         #expect(!FileManager.default.fileExists(atPath: directory.appendingPathComponent("package.zip").path))
     }
@@ -128,12 +125,9 @@ struct UpdateDownloaderTests {
         let url = Self.url()
         StubProtocol.register(.init(contentLength: 30, stall: true), for: url)
         let start = Date()
-        await #expect {
+        await expectUpdateError("download") {
             _ = try await Self.downloader(idle: 0.3).download(UpdatePackage(url: url, size: 30, sha256: nil),
                                                              into: try makeTempDirectory()) { _, _ in }
-        } throws: { error in
-            if case UpdateError.download = error { return true }
-            return false
         }
         #expect(Date().timeIntervalSince(start) < 2)
     }
@@ -151,12 +145,9 @@ struct UpdateDownloaderTests {
         let url = Self.url()
         StubProtocol.register(.init(interval: 0.05, endless: true), for: url)
         let start = Date()
-        await #expect {
+        await expectUpdateError("download") {
             _ = try await Self.downloader(idle: 5, total: 0.5).download(UpdatePackage(url: url, size: nil, sha256: nil),
                                                                        into: try makeTempDirectory()) { _, _ in }
-        } throws: { error in
-            if case UpdateError.download = error { return true }
-            return false
         }
         #expect(Date().timeIntervalSince(start) < 2.5)
     }

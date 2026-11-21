@@ -57,15 +57,12 @@ struct ProcessRunnerTests {
         #expect(try String(contentsOf: unpacked.appendingPathComponent("源 目录/a b.txt"), encoding: .utf8) == "hello")
     }
 
-    @Test func dittoFailuresAreFileOperationErrors() throws {
+    @Test func dittoFailuresAreFileOperationErrors() async throws {
         let root = try makeTempDirectory()
         let notAZip = root.appendingPathComponent("broken.zip")
         try Data("<html>login</html>".utf8).write(to: notAZip)
-        #expect {
+        await expectUpdateError("fileOperation") {
             try Ditto.unzip(notAZip, into: root.appendingPathComponent("out"))
-        } throws: { error in
-            if case UpdateError.fileOperation = error { return true }
-            return false
         }
     }
 
@@ -76,16 +73,13 @@ struct ProcessRunnerTests {
         try DataCheck.evaluate(ProcessResult(status: 0, output: "data_dir=/x\n\(line)\nstorage=keychain\n"), expectedStorage: "keychain")
     }
 
-    @Test func rejectsMigrationsFailuresAndMissingStatus() {
+    @Test func rejectsMigrationsFailuresAndMissingStatus() async {
         let failures = [ProcessResult(status: 0, output: "status=migrated\nstorage=keychain"),
                         ProcessResult(status: 3, output: "status=already-migrated\nstorage=keychain"),
                         ProcessResult(status: 0, output: "")]
         for result in failures {
-            #expect {
+            await expectUpdateError("dataCheck") {
                 try DataCheck.evaluate(result, expectedStorage: "keychain")
-            } throws: { error in
-                if case UpdateError.dataCheck = error { return true }
-                return false
             }
         }
     }
