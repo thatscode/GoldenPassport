@@ -217,3 +217,35 @@
 "加密备份（.gpbackup，用密码保护）…" = "Encrypted Backup (.gpbackup, password-protected)…";
 "选择加密备份（.gpbackup）、.secrets 备份文件，或每行一个 otpauth:// URL 的文本文件" = "Choose an encrypted backup (.gpbackup), a .secrets backup, or a text file with one otpauth:// URL per line";
 "导出加密备份" = "Export Encrypted Backup";
+
+/* Import from other authenticators */
+"不是 Google Authenticator 的迁移二维码。" = "Not a Google Authenticator migration code.";
+"迁移二维码里的数据已损坏，无法读取。" = "The data in the migration code is damaged and can't be read.";
+"按次数计数的验证码（HOTP），暂不支持" = "Counter-based code (HOTP), not supported yet";
+"没有密钥" = "No secret";
+"未知的算法（%lld）" = "Unknown algorithm (%lld)";
+"未知的位数（%lld）" = "Unknown number of digits (%lld)";
+"未知的类型（%lld）" = "Unknown type (%lld)";
+"未命名" = "Unnamed";
+"%@ · %lld 位 · %lld 秒" = "%@ · %lld digits · %lld s";
+"从其他验证器导入" = "Import from Another Authenticator";
+"从其他验证器导入…" = "Import from Another Authenticator…";
+"导入用的图片里含有密钥，用完请删除。" = "The images you imported from contain the secrets; delete them when you no longer need them.";
+"选择 Google Authenticator 导出的二维码图片，或含有 otpauth:// 二维码的图片" = "Choose QR code images exported by Google Authenticator, or images with otpauth:// QR codes";
+"图片里没有找到二维码。" = "No QR code found in the image.";
+"剪贴板里没有图片或链接。" = "The clipboard holds no image or link.";
+"这不是验证器账号的二维码或链接。" = "This isn't a QR code or link for an authenticator account.";
+"这些账号已经读过了。" = "These accounts have already been read.";
+"支持 Google Authenticator「转移账号」生成的二维码，以及 otpauth:// 链接。Microsoft Authenticator 和 Authy 无法导出账号。安卓版 Google Authenticator 不能截图，可以用另一台设备拍下二维码，再传到这台 Mac。" = "Reads the QR codes from Google Authenticator's “Transfer accounts” and otpauth:// links. Microsoft Authenticator and Authy can't export accounts. Google Authenticator for Android blocks screenshots: photograph the QR code with another device and send the photo to this Mac.";
+"把二维码图片拖到这里" = "Drop QR code images here";
+"选择图片…" = "Choose Images…";
+"粘贴" = "Paste";
+"名称" = "Name";
+"新账号" = "New";
+"已存在：%@" = "Already in the list as “%@”";
+"已改名（「%@」已被使用）" = "Renamed (“%@” is taken)";
+"不支持" = "Not supported";
+"Google Authenticator 导出的 %lld 张二维码都已读取。" = "All %lld QR codes of the Google Authenticator export have been read.";
+"Google Authenticator 导出共 %lld 张二维码，还差第 %@ 张。" = "The Google Authenticator export has %lld QR codes; still to read: %@.";
+"第 %lld 行的名称为空。" = "Row %lld has no name.";
+"第 %lld 行的名称「%@」已被使用。" = "Row %lld: the name “%@” is already in use.";

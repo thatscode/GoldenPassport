@@ -49,7 +49,12 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
     /// Changes made in 0.1.x after the migration that the user hasn't dealt with yet (I6).
     private var legacyChanges: LegacyChanges?
 
-    private lazy var addWindow = AddAccountWindowController(store: store) { [weak self] in
+    private lazy var addWindow = AddAccountWindowController(store: store, onAdded: { [weak self] in
+        self?.rebuildMenu()
+    }, onMigrationCode: { [weak self] payloads in
+        self?.importWindow.present(with: payloads)
+    })
+    private lazy var importWindow = AuthenticatorImportWindowController(store: store) { [weak self] in
         self?.rebuildMenu()
     }
     private lazy var manageWindow = ManageAccountsWindowController(store: store, hotkeyLabel: { [weak self] index in
@@ -140,6 +145,7 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         menu.addItem(item(String(localized: "管理（排序 / 重命名）…"), #selector(manageClicked), key: "m"))
         deleteItem = add(item(String(localized: "删除"), #selector(deleteClicked), key: "d"))
         menu.addItem(item(String(localized: "导入…"), #selector(importClicked), key: "i"))
+        menu.addItem(item(String(localized: "从其他验证器导入…"), #selector(importFromAuthenticatorClicked)))
         let exportItem = add(NSMenuItem(title: String(localized: "导出"), action: nil, keyEquivalent: ""))
         let exportMenu = NSMenu()
         exportMenu.addItem(item(String(localized: "加密备份（.gpbackup，用密码保护）…"), #selector(exportEncryptedClicked), key: "e"))
@@ -346,6 +352,10 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         if deleteMode {
             showAlert(String(localized: "已进入删除模式"), informative: String(localized: "请到状态栏菜单中点击要删除的记录。\n完成后点击「完成删除」退出删除模式。"))
         }
+    }
+
+    @objc private func importFromAuthenticatorClicked() {
+        importWindow.present()
     }
 
     @objc private func importClicked() {
@@ -702,7 +712,7 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
 
     /// Windows whose unsaved input would be lost when the old copy quits for the new one.
     private var hasOpenWindows: Bool {
-        [addWindow, manageWindow, portWindow, legacyWindow].contains { $0.isShowing }
+        [addWindow, manageWindow, portWindow, legacyWindow, importWindow].contains { $0.isShowing }
     }
 
     // MARK: - Changes made in 0.1.x (I6)

@@ -52,5 +52,37 @@
 			<string>Skipped %lld entries: not valid otpauth URLs.</string>
 		</dict>
 	</dict>
+	<key>读到 %lld 个账号。</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@accounts@</string>
+		<key>accounts</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>Found %lld account.</string>
+			<key>other</key>
+			<string>Found %lld accounts.</string>
+		</dict>
+	</dict>
+	<key>导入 %lld 个账号</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@accounts@</string>
+		<key>accounts</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>Import %lld Account</string>
+			<key>other</key>
+			<string>Import %lld Accounts</string>
+		</dict>
+	</dict>
 </dict>
 </plist>

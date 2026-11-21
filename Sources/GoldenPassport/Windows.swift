@@ -43,10 +43,14 @@ class HostedWindowController: NSObject, NSWindowDelegate {
 final class AddAccountWindowController: HostedWindowController {
     private let store: AccountStore
     private let onAdded: () -> Void
+    private let onMigrationCode: ([String]) -> Void
 
-    init(store: AccountStore, onAdded: @escaping () -> Void) {
+    /// `onMigrationCode` gets the QR codes of a picked image that holds a Google Authenticator
+    /// export instead of an otpauth link; the add window closes first.
+    init(store: AccountStore, onAdded: @escaping () -> Void, onMigrationCode: @escaping ([String]) -> Void) {
         self.store = store
         self.onAdded = onAdded
+        self.onMigrationCode = onMigrationCode
     }
 
     override var title: String { String(localized: "添加认证") }
@@ -55,6 +59,9 @@ final class AddAccountWindowController: HostedWindowController {
         AnyView(AddAccountView(store: store, onAdded: { [onAdded] in
             onAdded()
             close()
+        }, onMigrationCode: { [onMigrationCode] payloads in
+            close()
+            onMigrationCode(payloads)
         }, onCancel: close))
     }
 }
@@ -62,6 +69,7 @@ final class AddAccountWindowController: HostedWindowController {
 struct AddAccountView: View {
     let store: AccountStore
     let onAdded: () -> Void
+    let onMigrationCode: ([String]) -> Void
     let onCancel: () -> Void
 
     @State private var url = ""
@@ -113,17 +121,15 @@ struct AddAccountView: View {
         panel.allowedContentTypes = [.image]
         panel.allowsMultipleSelection = false
         guard panel.runModal() == .OK, let fileURL = panel.url else { return }
-        guard let found = QRCodeReader.otpAuthURLs(in: fileURL).first else {
+        let payloads = QRCodeScanner.payloads(inImageAt: fileURL)
+        if let found = payloads.first(where: { $0.lowercased().hasPrefix("otpauth://") }) {
+            url = found
+        } else if payloads.contains(where: GoogleAuthenticatorMigration.isMigrationURL) {
+            // A Google Authenticator export: the import window shows its accounts.
+            onMigrationCode(payloads)
+        } else {
             error = String(localized: "图片中没有找到 otpauth:// 二维码。")
-            return
         }
-        url = found
-    }
-}
-
-enum QRCodeReader {
-    static func otpAuthURLs(in fileURL: URL) -> [String] {
-        QRCodeScanner.payloads(inImageAt: fileURL).filter { $0.lowercased().hasPrefix("otpauth://") }
     }
 }
 

@@ -221,3 +221,37 @@
 "选择加密备份（.gpbackup）、.secrets 备份文件，或每行一个 otpauth:// URL 的文本文件" = "选择加密备份（.gpbackup）、.secrets 备份文件，或每行一个 otpauth:// URL 的文本文件";
 "导出加密备份" = "导出加密备份";
 "%lld 条不是有效的 otpauth URL，已忽略。" = "%lld 条不是有效的 otpauth URL，已忽略。";
+
+/* Import from other authenticators */
+"不是 Google Authenticator 的迁移二维码。" = "不是 Google Authenticator 的迁移二维码。";
+"迁移二维码里的数据已损坏，无法读取。" = "迁移二维码里的数据已损坏，无法读取。";
+"按次数计数的验证码（HOTP），暂不支持" = "按次数计数的验证码（HOTP），暂不支持";
+"没有密钥" = "没有密钥";
+"未知的算法（%lld）" = "未知的算法（%lld）";
+"未知的位数（%lld）" = "未知的位数（%lld）";
+"未知的类型（%lld）" = "未知的类型（%lld）";
+"未命名" = "未命名";
+"%@ · %lld 位 · %lld 秒" = "%@ · %lld 位 · %lld 秒";
+"从其他验证器导入" = "从其他验证器导入";
+"从其他验证器导入…" = "从其他验证器导入…";
+"导入用的图片里含有密钥，用完请删除。" = "导入用的图片里含有密钥，用完请删除。";
+"选择 Google Authenticator 导出的二维码图片，或含有 otpauth:// 二维码的图片" = "选择 Google Authenticator 导出的二维码图片，或含有 otpauth:// 二维码的图片";
+"图片里没有找到二维码。" = "图片里没有找到二维码。";
+"剪贴板里没有图片或链接。" = "剪贴板里没有图片或链接。";
+"这不是验证器账号的二维码或链接。" = "这不是验证器账号的二维码或链接。";
+"这些账号已经读过了。" = "这些账号已经读过了。";
+"支持 Google Authenticator「转移账号」生成的二维码，以及 otpauth:// 链接。Microsoft Authenticator 和 Authy 无法导出账号。安卓版 Google Authenticator 不能截图，可以用另一台设备拍下二维码，再传到这台 Mac。" = "支持 Google Authenticator「转移账号」生成的二维码，以及 otpauth:// 链接。Microsoft Authenticator 和 Authy 无法导出账号。安卓版 Google Authenticator 不能截图，可以用另一台设备拍下二维码，再传到这台 Mac。";
+"把二维码图片拖到这里" = "把二维码图片拖到这里";
+"选择图片…" = "选择图片…";
+"粘贴" = "粘贴";
+"名称" = "名称";
+"新账号" = "新账号";
+"已存在：%@" = "已存在：%@";
+"已改名（「%@」已被使用）" = "已改名（「%@」已被使用）";
+"不支持" = "不支持";
+"Google Authenticator 导出的 %lld 张二维码都已读取。" = "Google Authenticator 导出的 %lld 张二维码都已读取。";
+"Google Authenticator 导出共 %lld 张二维码，还差第 %@ 张。" = "Google Authenticator 导出共 %lld 张二维码，还差第 %@ 张。";
+"第 %lld 行的名称为空。" = "第 %lld 行的名称为空。";
+"第 %lld 行的名称「%@」已被使用。" = "第 %lld 行的名称「%@」已被使用。";
+"读到 %lld 个账号。" = "读到 %lld 个账号。";
+"导入 %lld 个账号" = "导入 %lld 个账号";
