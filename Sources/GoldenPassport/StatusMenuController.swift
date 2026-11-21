@@ -9,6 +9,8 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
     private let dataDirectory: URL
     private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
     private let menu = NSMenu()
+    /// Shared by the menu and the hotkeys, so a new code always replaces the pending removal.
+    private let clipboard = CodeClipboard()
     private let hotkeys: HotkeyMonitor
 
     private let timerItem = NSMenuItem()
@@ -72,7 +74,7 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         self.store = store
         self.settings = settings
         self.dataDirectory = dataDirectory
-        hotkeys = HotkeyMonitor(store: store)
+        hotkeys = HotkeyMonitor(store: store, clipboard: clipboard)
         let version = AppVersion(bundleInfo: Bundle.main.infoDictionary ?? [:]) ?? AppVersion("0")!
         appVersion = version.description
         updateChecker = UpdateChecker(currentVersion: version, dataFormat: dataFormat,
@@ -106,6 +108,7 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
     func shutdown() {
         hotkeys.stop()
         httpServer?.stop()
+        clipboard.removeCodeIfUnchanged()
     }
 
     // MARK: - Menu construction
@@ -323,9 +326,8 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
             rebuildMenu()
         } else {
             let code = AccountStore.code(for: account, at: Date())
-            guard case .success(let value) = code.result else { return }
-            NSPasteboard.general.clearContents()
-            NSPasteboard.general.setString(value, forType: .string)
+            guard case .success(let value) = code.result, let validUntil = code.validUntil else { return }
+            clipboard.copy(value, until: validUntil)
         }
     }
 

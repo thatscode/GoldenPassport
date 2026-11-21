@@ -36,6 +36,13 @@ public struct TOTP: Equatable, Sendable {
         return period - elapsed
     }
 
+    /// When the code shown at `date` stops being accepted: the end of its period plus one more,
+    /// the delay RFC 6238 (section 5.2) recommends servers allow at most.
+    public func validUntil(codeAt date: Date) -> Date {
+        let counter = (max(0, date.timeIntervalSince1970) / Double(period)).rounded(.down)
+        return Date(timeIntervalSince1970: (counter + 2) * Double(period))
+    }
+
     func code(counter: UInt64) -> String {
         var bigEndian = counter.bigEndian
         let message = Data(bytes: &bigEndian, count: MemoryLayout<UInt64>.size)

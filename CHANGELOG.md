@@ -5,6 +5,18 @@ English | [简体中文](CHANGELOG.zh-CN.md)
 Notable changes in each release of this fork. Versions 0.1.0 to 0.1.7 were released by the
 original project; see [its releases](https://github.com/stanzhai/GoldenPassport/releases).
 
+## 0.2.4 (unreleased)
+
+### Security & privacy
+
+- **Copied codes don't linger on the clipboard.** Codes copied from the menu or typed by a hotkey
+  are marked as confidential, so clipboard managers that honor the
+  [nspasteboard.org](https://nspasteboard.org) markers (Maccy, for example) leave them out of their
+  history. They are removed from the clipboard once they expire, 30 to 60 seconds after copying
+  for most accounts, unless you have copied something else since, and right away when you quit
+  GoldenPassport. When a hotkey types the code, text you had copied that was marked as confidential
+  stays marked when it comes back.
+
 ## 0.2.3 (2026-11-21)
 
 ### New features

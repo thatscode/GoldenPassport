@@ -5,7 +5,8 @@ import GoldenPassportCore
 /// Global hotkeys <modifiers>+N (N = 0–9) that type the code of account N into the
 /// frontmost app. Registered with Carbon so the keystroke is consumed (it no longer
 /// also reaches the frontmost app); posting the ⌘V needs the Accessibility permission,
-/// without it the code is only copied to the pasteboard.
+/// without it the code is only copied to the pasteboard. Either way the code is marked for
+/// clipboard managers to skip and removed once it expires (CodeClipboard).
 final class HotkeyMonitor {
     private static let digitKeyCodes: [Int] = [
         kVK_ANSI_0, kVK_ANSI_1, kVK_ANSI_2, kVK_ANSI_3, kVK_ANSI_4,
@@ -14,12 +15,14 @@ final class HotkeyMonitor {
     private static let signature: OSType = 0x4750_484B // "GPHK"
 
     private let store: AccountStore
+    private let clipboard: CodeClipboard
     private var hotKeyRefs: [EventHotKeyRef] = []
     private var handlerRef: EventHandlerRef?
     private(set) var failedDigits: [Int] = []
 
-    init(store: AccountStore) {
+    init(store: AccountStore, clipboard: CodeClipboard) {
         self.store = store
+        self.clipboard = clipboard
     }
 
     deinit {
@@ -86,30 +89,22 @@ final class HotkeyMonitor {
 
     private func fill(accountAt index: Int) {
         let accounts = store.accounts
-        guard index < accounts.count,
-              case .success(let code) = AccountStore.code(for: accounts[index], at: Date()).result else {
+        let accountCode = index < accounts.count ? AccountStore.code(for: accounts[index], at: Date()) : nil
+        guard let accountCode, case .success(let code) = accountCode.result,
+              let validUntil = accountCode.validUntil else {
             NSSound.beep()
             return
         }
-        let pasteboard = NSPasteboard.general
-        let previous = pasteboard.string(forType: .string)
-        pasteboard.clearContents()
-        pasteboard.setString(code, forType: .string)
-
         guard AXIsProcessTrusted() else {
             // Can't type into other apps yet: the code stays on the pasteboard. The permission
             // prompt is shown when hotkeys are switched on, not on every keystroke.
+            clipboard.copy(code, until: validUntil)
             return
         }
-        let ourChange = pasteboard.changeCount
+        let restorePrevious = clipboard.copyForPasting(code, until: validUntil)
         pasteWhenModifiersReleased(deadline: Date().addingTimeInterval(1)) {
-            guard let previous else { return }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-                // Don't clobber something the user copied in the meantime.
-                guard pasteboard.changeCount == ourChange else { return }
-                pasteboard.clearContents()
-                pasteboard.setString(previous, forType: .string)
-            }
+            // Leaves alone anything the user copied in the meantime.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1, execute: restorePrevious)
         }
     }
 

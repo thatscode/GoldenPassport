@@ -17,6 +17,8 @@ public struct AccountCode: Sendable {
     public let account: Account
     public let result: Result<String, OTPAuthURLError>
     public let secondsRemaining: Int?
+    /// When the code stops being accepted (see `TOTP.validUntil(codeAt:)`).
+    public let validUntil: Date?
 
     public var displayCode: String {
         switch result {
@@ -194,11 +196,12 @@ public final class AccountStore: @unchecked Sendable {
             let totp = try OTPAuthURL(string: account.url).totp
             return AccountCode(account: account,
                                result: .success(totp.code(at: date)),
-                               secondsRemaining: totp.secondsRemaining(at: date))
+                               secondsRemaining: totp.secondsRemaining(at: date),
+                               validUntil: totp.validUntil(codeAt: date))
         } catch {
             return AccountCode(account: account,
                                result: .failure(error as? OTPAuthURLError ?? .invalidURL),
-                               secondsRemaining: nil)
+                               secondsRemaining: nil, validUntil: nil)
         }
     }
 

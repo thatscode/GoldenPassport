@@ -54,6 +54,15 @@ struct TOTPTests {
         #expect(totp.secondsRemaining(at: Date(timeIntervalSince1970: 60)) == 30)
         #expect(totp.secondsRemaining(at: Date(timeIntervalSince1970: 89)) == 1)
     }
+
+    // RFC 6238 section 5.2: servers should accept a code at most one time step late.
+    @Test func validUntilAllowsOneStepOfDelay() {
+        let totp = TOTP(secret: Self.sha1Secret, period: 30)
+        #expect(totp.validUntil(codeAt: Date(timeIntervalSince1970: 60)) == Date(timeIntervalSince1970: 120))
+        #expect(totp.validUntil(codeAt: Date(timeIntervalSince1970: 89.5)) == Date(timeIntervalSince1970: 120))
+        let slow = TOTP(secret: Self.sha1Secret, period: 60)
+        #expect(slow.validUntil(codeAt: Date(timeIntervalSince1970: 61)) == Date(timeIntervalSince1970: 180))
+    }
 }
 
 struct OTPAuthURLTests {

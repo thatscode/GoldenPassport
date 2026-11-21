@@ -27,8 +27,8 @@ A native Google Authenticator for the macOS menu bar: TOTP codes one click (or o
 ### Menu bar menu
 
 Click the key icon in the menu bar. The top line counts down until the codes change. Each account
-is listed as `name: code`; click a row to copy its code. The first ten accounts show their global
-hotkey on the right. Below the list are account management, the local HTTP API, hotkey settings,
+is listed as `name: code`; click a row to copy its code (it is removed from the clipboard once it
+expires). The first ten accounts show their global hotkey on the right. Below the list are account management, the local HTTP API, hotkey settings,
 launch at login and update checks.
 
 <img src="screenshot/en/menu.png" alt="Menu bar menu" width="380">
@@ -138,6 +138,10 @@ menu bar. From 0.2.3 on, **Check for Updates…** can download and install a new
 - Data files are owner-only: the data directory is `0700` and files are `0600`. 0.1.x left them
   readable by every local user; 0.2.0 tightens the existing files without changing them.
 - Both export formats warn that the file contains every secret unencrypted.
+- Copied codes don't linger on the clipboard. They are marked as confidential, so clipboard
+  managers that honor that marker (Maccy, for example) leave them out of their history, and they
+  are removed once they expire, 30 to 60 seconds after copying for most accounts, unless you have
+  copied something else since. Quitting GoldenPassport removes them right away.
 - See [Data & security](#data--security) for every place a copy of your secrets can exist.
 
 ### Behaviour changes to be aware of
@@ -273,7 +277,8 @@ Click the key icon in the menu bar. Each account shows its current code; click o
 
 Modifier + **0** fills in the code of the **first** account in the list, modifier + **1** the
 second, and so on up to **9** for the tenth. Reorder accounts in the manage window to choose which
-ones get hotkeys.
+ones get hotkeys. The code is pasted through the clipboard; the text you had copied comes back a
+second later.
 
 ### RESTful API
 
