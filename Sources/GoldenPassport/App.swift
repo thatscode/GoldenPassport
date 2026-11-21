@@ -7,12 +7,7 @@ enum GoldenPassportApp {
         if CommandLine.arguments.contains("--migrate-data") {
             exit(runMigrateData(Array(CommandLine.arguments.dropFirst())))
         }
-        // Started by an update installed from the app: give the old copy up to 10 seconds to quit,
-        // then the single-copy check runs as usual (docs/design/in-app-update.md, 5.5).
         let update = UpdateLaunchArguments(arguments: CommandLine.arguments)
-        if let oldProcess = update.oldProcessID {
-            _ = UpdateLaunchArguments.waitForExit(of: oldProcess)
-        }
         // The language chosen in the menu and the menu bar icon's position live in the defaults of
         // the bundle id; carry them over from the old one (0.1.x, 0.2.0) before anything is
         // localized and before the status item is created.
@@ -20,7 +15,7 @@ enum GoldenPassportApp {
             LegacyPreferences.carryOver(from: legacyID, to: bundleID)
         }
         let app = NSApplication.shared
-        let delegate = AppDelegate(updatedFrom: update.updatedFrom)
+        let delegate = AppDelegate(update: update)
         app.delegate = delegate
         app.setActivationPolicy(.accessory)
         withExtendedLifetime(delegate) { app.run() }
@@ -47,17 +42,29 @@ enum GoldenPassportApp {
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusMenuController: StatusMenuController?
-    /// The version an in-app update replaced, when this copy was started by it.
-    private let updatedFrom: String?
+    /// Set when an update installed from the app started this copy: the old copy's process and
+    /// the version it replaced.
+    private let update: UpdateLaunchArguments
 
-    init(updatedFrom: String?) {
-        self.updatedFrom = updatedFrom
+    init(update: UpdateLaunchArguments) {
+        self.update = update
         super.init()
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.mainMenu = makeMainMenu()
 
+        // Started by an update installed from the app: give the old copy up to 10 seconds to quit,
+        // then the single-copy check runs as usual (docs/design/in-app-update.md, 5.5). The wait
+        // doesn't block: the old copy quits only once it hears that this launch finished.
+        if let oldProcess = update.oldProcessID {
+            UpdateLaunchArguments.whenExited(of: oldProcess) { [weak self] _ in self?.start() }
+        } else {
+            start()
+        }
+    }
+
+    private func start() {
         // A second copy (say, one opened from the download folder while the installed one runs)
         // would add a second menu bar icon, fight over the hotkeys and the HTTP port, and save its
         // own account list over the other's. Stop before touching any data.
@@ -86,7 +93,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if let bundleIdentifier = Bundle.main.bundleIdentifier {
             UpdateDownloader.clearCache(bundleIdentifier: bundleIdentifier)
         }
-        if updatedFrom != nil, let version = AppVersion(bundleInfo: Bundle.main.infoDictionary ?? [:]) {
+        if update.updatedFrom != nil, let version = AppVersion(bundleInfo: Bundle.main.infoDictionary ?? [:]) {
             let hotkeysEnabled = settings.hotkeysEnabled
             DispatchQueue.main.async {
                 UpdateController.showUpdatedNotice(version: version.description, hotkeysEnabled: hotkeysEnabled)
@@ -95,11 +102,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     /// Another running copy of this app, under this bundle id or the one 0.1.x and 0.2.0 used.
+    /// Launch Services can still list a copy for a moment after its process ended (the old copy,
+    /// right after an update), so the process itself must still exist.
     private func otherRunningCopy() -> NSRunningApplication? {
         let me = ProcessInfo.processInfo.processIdentifier
         return [Bundle.main.bundleIdentifier, legacyBundleIdentifier].compactMap { $0 }
             .flatMap { NSRunningApplication.runningApplications(withBundleIdentifier: $0) }
-            .first { $0.processIdentifier != me && !$0.isTerminated }
+            .first {
+                $0.processIdentifier != me && !$0.isTerminated
+                    && UpdateLaunchArguments.processExists($0.processIdentifier)
+            }
     }
 
     private func showAlreadyRunning(_ other: NSRunningApplication) {

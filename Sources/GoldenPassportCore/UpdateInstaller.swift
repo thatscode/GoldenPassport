@@ -180,14 +180,23 @@ public struct UpdateLaunchArguments: Equatable, Sendable {
         kill(pid, 0) == 0 || errno == EPERM
     }
 
-    /// Polls until `isRunning` says the process is gone (true) or `timeout` passes (false).
-    public static func waitForExit(of pid: Int32, timeout: TimeInterval = 10,
-                                   isRunning: (Int32) -> Bool = UpdateLaunchArguments.processExists) -> Bool {
+    /// Polls on the current run loop until `isRunning` says the process is gone (`completion(true)`)
+    /// or `timeout` passes (`completion(false)`). Returns at once: the old copy quits only after
+    /// Launch Services reports that the new copy finished launching, so a new copy that blocked
+    /// here would hold the old one up for the whole timeout.
+    public static func whenExited(of pid: Int32, timeout: TimeInterval = 10,
+                                  isRunning: @escaping (Int32) -> Bool = UpdateLaunchArguments.processExists,
+                                  completion: @escaping (Bool) -> Void) {
         let deadline = Date().addingTimeInterval(timeout)
-        while isRunning(pid) {
-            if Date() >= deadline { return false }
-            Thread.sleep(forTimeInterval: 0.05)
+        let timer = Timer(timeInterval: 0.05, repeats: true) { timer in
+            if !isRunning(pid) {
+                timer.invalidate()
+                completion(true)
+            } else if Date() >= deadline {
+                timer.invalidate()
+                completion(false)
+            }
         }
-        return true
+        RunLoop.current.add(timer, forMode: .common)
     }
 }

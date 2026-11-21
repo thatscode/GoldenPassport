@@ -167,14 +167,34 @@ struct UpdateInstallerTests {
         #expect(UpdateLaunchArguments(arguments: []).arguments.isEmpty)
     }
 
-    @Test func waitsUntilTheOldProcessExits() {
+    /// Spins the current run loop until `done` says so or `timeout` passes.
+    static func runRunLoop(timeout: TimeInterval, until done: () -> Bool) {
+        let deadline = Date().addingTimeInterval(timeout)
+        while !done() && Date() < deadline {
+            RunLoop.current.run(until: Date().addingTimeInterval(0.01))
+        }
+    }
+
+    /// The new copy must not block while it waits: the old copy quits only once Launch Services
+    /// reports this launch finished, and a blocked launch held every update up for the full timeout.
+    @Test func waitingForTheOldProcessReturnsAtOnce() {
+        let start = Date()
+        var result: Bool?
+        UpdateLaunchArguments.whenExited(of: 42, timeout: 5, isRunning: { _ in true }) { result = $0 }
+        #expect(Date().timeIntervalSince(start) < 0.5)
+        #expect(result == nil)
+    }
+
+    @Test func reportsWhenTheOldProcessExits() {
         var checks = 0
-        let exited = UpdateLaunchArguments.waitForExit(of: 42, timeout: 5) { pid in
+        var result: Bool?
+        UpdateLaunchArguments.whenExited(of: 42, timeout: 5, isRunning: { pid in
             #expect(pid == 42)
             checks += 1
             return checks <= 3
-        }
-        #expect(exited)
+        }) { result = $0 }
+        Self.runRunLoop(timeout: 5) { result != nil }
+        #expect(result == true)
         #expect(checks == 4)
     }
 
@@ -189,7 +209,11 @@ struct UpdateInstallerTests {
 
     @Test func givesUpAfterTheTimeout() {
         let start = Date()
-        #expect(!UpdateLaunchArguments.waitForExit(of: 42, timeout: 0.3) { _ in true })
+        var result: Bool?
+        UpdateLaunchArguments.whenExited(of: 42, timeout: 0.3, isRunning: { _ in true }) { result = $0 }
+        Self.runRunLoop(timeout: 5) { result != nil }
+        #expect(result == false)
+        #expect(Date().timeIntervalSince(start) >= 0.3)
         #expect(Date().timeIntervalSince(start) < 1)
     }
 }
