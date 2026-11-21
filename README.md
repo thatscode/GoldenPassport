@@ -171,6 +171,11 @@ GoldenPassport then:
    choose **Always Allow**);
 4. moves the current version to the Trash, puts the new one in its place and opens it.
 
+Your accounts, settings, **Launch at Login** and the Accessibility permission carry over: macOS
+only asks for Accessibility again when the app's signing identity or bundle ID changes. If it ever
+drops the permission, the message shown after the update says so and has a button that opens the
+setting.
+
 If any step fails, nothing is changed and you keep using the current version. To go back, quit
 GoldenPassport, move the new version out of the Applications folder and put the previous one back
 from the Trash.

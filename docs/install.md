@@ -75,8 +75,9 @@ GoldenPassport runs from a place it can't replace, or when your macOS account ca
   **Language / 语言** in the menu, then click **Restart Now**.
 - **Hotkeys** now default to ⌃⌥⌘0–9 (0.1.x used ⇧⌘0–9, whose 3/4/5 clash with the screenshot
   shortcuts). You can switch back under **Global Hotkeys** in the menu.
-- **Typing the code for you** needs the Accessibility permission, and you have to grant it again
-  after upgrading: System Settings → Privacy & Security → Accessibility. If GoldenPassport is
+- **Typing the code for you** needs the Accessibility permission. You have to grant it again only
+  when an upgrade changes the app's signing identity or bundle ID, as upgrading from 0.1.x, 0.2.0
+  or a 0.2.0 beta does: System Settings → Privacy & Security → Accessibility. If GoldenPassport is
   already listed but typing doesn't work, remove it with "−" and pick a hotkey option in the menu
   again to get a fresh prompt. Without the permission, hotkeys copy the code to the clipboard.
 - **The HTTP API is off on new installs.** It has no password, so while it runs anything running
