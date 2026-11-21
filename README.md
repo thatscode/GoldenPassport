@@ -393,6 +393,8 @@ Requires Xcode 16 or later. No third-party dependencies.
 
 ```
 make test      # unit tests
+make check     # what CI runs: unit tests, then a universal pre-release package checked and
+               # installed in temporary folders
 make dev       # "GoldenPassport Dev.app": own bundle id, data folder and port 17305, hotkeys off
 make run-dev   # build and launch the Dev app
 make release   # "GoldenPassport.app", a drop-in replacement for the installed app

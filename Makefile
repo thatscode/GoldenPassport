@@ -4,10 +4,14 @@ BUILD_ROOT ?= $(HOME)/Library/Caches/GoldenPassport-build
 SWIFT = xcrun swift
 SWIFT_FLAGS = --scratch-path "$(BUILD_ROOT)/swiftpm"
 
-.PHONY: test dev release package beta run-dev clean
+.PHONY: test check dev release package beta run-dev clean
 
 test:
 	$(SWIFT) test $(SWIFT_FLAGS)
+
+# What CI runs, on this Mac; run before every release (scripts/check.sh)
+check:
+	BUILD_ROOT="$(BUILD_ROOT)" scripts/check.sh
 
 dev:
 	BUILD_ROOT="$(BUILD_ROOT)" scripts/build-app.sh dev

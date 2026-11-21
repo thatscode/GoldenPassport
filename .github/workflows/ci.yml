@@ -44,53 +44,8 @@ jobs:
         run: for f in scripts/*.sh; do bash -n "$f"; done
       - name: Build universal beta package
         run: make beta
-      - name: Verify bundle
-        run: |
-          APP="$HOME/Library/Caches/GoldenPassport-build/release/GoldenPassport.app"
-          codesign --verify --strict "$APP"
-          lipo -archs "$APP/Contents/MacOS/GoldenPassport" | grep -q arm64
-          lipo -archs "$APP/Contents/MacOS/GoldenPassport" | grep -q x86_64
-          test -f "$APP/Contents/Resources/en.lproj/Localizable.strings"
-          test -f "$APP/Contents/Resources/en.lproj/Localizable.stringsdict"
-          test -f "$APP/Contents/Resources/zh-Hans.lproj/Localizable.strings"
-          test -f "$APP/Contents/Resources/LICENSE"
-          # Beta packages report <version>-<label>, so the update check offers the release.
-          test "$(/usr/libexec/PlistBuddy -c 'Print :GPPrerelease' "$APP/Contents/Info.plist")" = beta
-          # Headless migration check against an empty data directory.
-          "$APP/Contents/MacOS/GoldenPassport" --migrate-data --data-dir "$RUNNER_TEMP/gp-data"
-      - name: Verify package
-        run: |
-          ZIP="$(ls ~/Library/Caches/GoldenPassport-build/dist/*.zip)"
-          unzip -Z1 "$ZIP" > "$RUNNER_TEMP/zip-list.txt"
-          # AppleDouble ._ entries would end up inside the bundle when extracted with unzip.
-          if grep '/\._' "$RUNNER_TEMP/zip-list.txt"; then echo "::error::package contains AppleDouble ._ files"; exit 1; fi
-          unzip -q "$ZIP" -d "$RUNNER_TEMP/unzipped"
-          codesign --verify --strict "$RUNNER_TEMP"/unzipped/*/GoldenPassport.app
-          for f in install.sh rollback.sh cleanup.sh INSTALL.md 安装说明.md LICENSE; do
-            test -f "$RUNNER_TEMP"/unzipped/*/"$f" || { echo "::error::package lacks $f"; exit 1; }
-          done
-      - name: Install from the package
-        run: |
-          export GP_APPLICATIONS_DIR="$RUNNER_TEMP/apps" GP_DATA_DIR="$RUNNER_TEMP/install-data" \
-            GP_BACKUP_ROOT="$RUNNER_TEMP/backups" GP_NO_LAUNCH=1 GP_LANG=en
-          mkdir -p "$GP_APPLICATIONS_DIR"
-          PACKAGE="$(ls -d "$RUNNER_TEMP"/unzipped/*/)"
-          bash "$PACKAGE/install.sh"
-          FIRST="$(ls -d "$GP_BACKUP_ROOT"/*/)"
-          MANIFEST="$(shasum "$FIRST/manifest.txt")"
-          # A second install in the same second must not reuse, and overwrite, that backup.
-          mkdir "$RUNNER_TEMP/clock"
-          printf '#!/bin/bash\n[ "$1" = "+%%Y%%m%%d-%%H%%M%%S" ] && exec echo %s\nexec /bin/date "$@"\n' \
-            "$(basename "$FIRST")" > "$RUNNER_TEMP/clock/date"
-          chmod +x "$RUNNER_TEMP/clock/date"
-          if PATH="$RUNNER_TEMP/clock:$PATH" bash "$PACKAGE/install.sh" > "$RUNNER_TEMP/second.log" 2>&1; then
-            cat "$RUNNER_TEMP/second.log"; echo "::error::install.sh reused an existing backup folder"; exit 1
-          fi
-          grep -q 'Could not create a new backup folder' "$RUNNER_TEMP/second.log" || { cat "$RUNNER_TEMP/second.log"; exit 1; }
-          test "$(shasum "$FIRST/manifest.txt")" = "$MANIFEST"
-          # With the real clock, the next install gets a backup folder of its own.
-          bash "$PACKAGE/install.sh"
-          test "$(ls -d "$GP_BACKUP_ROOT"/*/ | wc -l | tr -d ' ')" -eq 2
+      - name: Check the package (bundle, zip, data check, install)
+        run: scripts/check-package.sh "$HOME/Library/Caches/GoldenPassport-build/dist/GoldenPassport-$(cat VERSION)-beta.zip"
       - uses: actions/upload-artifact@v7
         with:
           name: GoldenPassport-beta

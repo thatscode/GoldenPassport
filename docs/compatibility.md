@@ -164,7 +164,8 @@ GoldenPassport 保存的是 MFA 密钥。数据一旦丢失，用户可能被锁
 - [ ] 改了默认值吗？已有用户的行为是否保持不变（3.4）？
 - [ ] tag 是否为 `vX.Y.Z`？预发布版本是否勾选了 pre-release？「latest」是否指向版本号最高的正式版？
 - [ ] 是否上传了 `compat.json`，内容是否和这个版本一致？
-- [ ] 安装包附件是否叫 `GoldenPassport-<版本号>.zip`，App 是否经过公证并装订了票据？否则 App 内更新会退回发布页面，或者在校验时失败（5.3）。
+- [ ] 安装包附件是否叫 `GoldenPassport-<版本号>.zip`，App 是否经过公证并装订了票据？否则 App 内更新会退回发布页面，或者在校验时失败（5.3）。`scripts/check-package.sh <zip>` 会检查名称、内容、版本号、公证和票据。
+- [ ] 本机 `make check` 是否通过？发布不等 CI，CI 的结果只作参考。没有安装 Xcode 16.0 时，`make check` 会提示最老的工具链没有覆盖到。
 
 ## 7. 实施事项
 

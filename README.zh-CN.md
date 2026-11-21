@@ -250,6 +250,7 @@ GoldenPassport 把账号列表存在登录钥匙串里一个名为 **GoldenPassp
 
 ```
 make test      # 单元测试
+make check     # 在本机跑一遍 CI 的检查：单元测试，再构建通用版预发布包，在临时目录里检查并安装
 make dev       # 「GoldenPassport Dev.app」：独立的 Bundle ID、数据目录和端口 17305，快捷键默认关闭
 make run-dev   # 构建并启动开发版
 make release   # 「GoldenPassport.app」，可直接替换已安装的正式版
