@@ -1,5 +1,4 @@
 import AppKit
-import CoreImage
 import GoldenPassportCore
 import SwiftUI
 import UniformTypeIdentifiers
@@ -124,12 +123,7 @@ struct AddAccountView: View {
 
 enum QRCodeReader {
     static func otpAuthURLs(in fileURL: URL) -> [String] {
-        guard let image = CIImage(contentsOf: fileURL),
-              let detector = CIDetector(ofType: CIDetectorTypeQRCode, context: nil,
-                                        options: [CIDetectorAccuracy: CIDetectorAccuracyHigh]) else { return [] }
-        return detector.features(in: image)
-            .compactMap { ($0 as? CIQRCodeFeature)?.messageString }
-            .filter { $0.lowercased().hasPrefix("otpauth://") }
+        QRCodeScanner.payloads(inImageAt: fileURL).filter { $0.lowercased().hasPrefix("otpauth://") }
     }
 }
 
