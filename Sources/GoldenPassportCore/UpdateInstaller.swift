@@ -52,47 +52,64 @@ public struct UpdateInstaller {
 
     /// Steps 1–6. On failure, undoes what was done and throws `InstallFailure`; afterwards the caller
     /// quits (step 7) so the new copy can take over.
+    /// Each step is a do/catch, not a closure: Swift 6.0 and 6.1 (Xcode 16) crash compiling
+    /// non-escaping closures in this function (SIL pass ClosureLifetimeFixup).
     public func install(from unpackedApp: URL) throws {
         let staging = Self.stagingURL(for: target)
+        let target = self.target
         let operations = self.operations
-        let removeStaging = { try operations.removeIfPresent(staging) }
+        let removeStaging: () throws -> Void = { try operations.removeIfPresent(staging) }
 
-        try run(.stage, restore: [removeStaging], previous: nil) {
+        progress(.stage)
+        do {
             try operations.removeIfPresent(staging)
             try operations.copy(unpackedApp, to: staging)
+        } catch {
+            throw failure(.stage, error, restore: [removeStaging], previous: nil)
         }
-        try run(.verify, restore: [removeStaging], previous: nil) { try operations.verify(staging) }
-        try run(.checkData, restore: [removeStaging], previous: nil) { try operations.checkData(staging) }
-
-        var previous: URL?
-        try run(.trashOld, restore: [removeStaging], previous: nil) {
+        progress(.verify)
+        do {
+            try operations.verify(staging)
+        } catch {
+            throw failure(.verify, error, restore: [removeStaging], previous: nil)
+        }
+        progress(.checkData)
+        do {
+            try operations.checkData(staging)
+        } catch {
+            throw failure(.checkData, error, restore: [removeStaging], previous: nil)
+        }
+        progress(.trashOld)
+        let previous: URL
+        do {
             try operations.readyToQuit()
             previous = try operations.trash(target)
+        } catch {
+            throw failure(.trashOld, error, restore: [removeStaging], previous: nil)
         }
-        guard let previous else { return }
-
-        let target = self.target
-        try run(.moveNew, restore: [{ try operations.move(previous, to: target) }, removeStaging], previous: previous) {
+        progress(.moveNew)
+        do {
             try operations.move(staging, to: target)
+        } catch {
+            throw failure(.moveNew, error, restore: [{ try operations.move(previous, to: target) }, removeStaging],
+                          previous: previous)
         }
-        try run(.launch, restore: [{ _ = try operations.trash(target) }, { try operations.move(previous, to: target) }],
-                previous: previous) {
+        progress(.launch)
+        do {
             try operations.launch(target, arguments: launchArguments.arguments)
+        } catch {
+            throw failure(.launch, error, restore: [{ _ = try operations.trash(target) }, { try operations.move(previous, to: target) }],
+                          previous: previous)
         }
     }
 
-    /// Runs one step; if it throws, tries every restore action in order (even after one fails).
-    private func run(_ step: InstallStep, restore: [() throws -> Void], previous: URL?, _ body: () throws -> Void) throws {
-        progress(step)
-        do {
-            try body()
-        } catch {
-            var restored = true
-            for action in restore {
-                do { try action() } catch { restored = false }
-            }
-            throw InstallFailure(step: step, underlying: error, restored: restored, previousAppInTrash: previous)
+    /// Tries every restore action in order (even after one fails) and describes the failure.
+    private func failure(_ step: InstallStep, _ error: Error, restore: [() throws -> Void], previous: URL?) -> InstallFailure {
+        var restored = true
+        for action in restore {
+            do { try action() } catch { restored = false }
         }
+        return InstallFailure(step: step, underlying: error, restored: restored, previousAppInTrash: previous)
     }
 }
 

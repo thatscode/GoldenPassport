@@ -17,6 +17,11 @@ original project; see [its releases](https://github.com/stanzhai/GoldenPassport/
   GoldenPassport. When a hotkey types the code, text you had copied that was marked as confidential
   stays marked when it comes back.
 
+### Fixes
+
+- Building from source works with Xcode 16 again: its Swift compiler crashed on the 0.2.3 update
+  installer, so 0.2.3 needed Xcode 26. Downloaded releases were not affected.
+
 ## 0.2.3 (2026-11-21)
 
 ### New features
