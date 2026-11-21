@@ -142,7 +142,8 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         menu.addItem(item(String(localized: "导入…"), #selector(importClicked), key: "i"))
         let exportItem = add(NSMenuItem(title: String(localized: "导出"), action: nil, keyEquivalent: ""))
         let exportMenu = NSMenu()
-        exportMenu.addItem(item(String(localized: "备份文件（.secrets，可导入新旧版本）…"), #selector(exportClicked), key: "e"))
+        exportMenu.addItem(item(String(localized: "加密备份（.gpbackup，用密码保护）…"), #selector(exportEncryptedClicked), key: "e"))
+        exportMenu.addItem(item(String(localized: "备份文件（.secrets，可导入新旧版本）…"), #selector(exportClicked)))
         exportMenu.addItem(item(String(localized: "otpauth URL 列表（.txt，可导入其他验证器）…"), #selector(exportURLListClicked)))
         exportItem.submenu = exportMenu
 
@@ -349,11 +350,16 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
 
     @objc private func importClicked() {
         let panel = NSOpenPanel()
-        panel.allowedContentTypes = [UTType(filenameExtension: "secrets") ?? .data, .plainText]
+        panel.allowedContentTypes = [UTType(filenameExtension: EncryptedBackup.fileExtension) ?? .data,
+                                     UTType(filenameExtension: "secrets") ?? .data, .plainText]
         panel.allowsMultipleSelection = false
-        panel.message = String(localized: "选择 .secrets 备份文件，或每行一个 otpauth:// URL 的文本文件")
+        panel.message = String(localized: "选择加密备份（.gpbackup）、.secrets 备份文件，或每行一个 otpauth:// URL 的文本文件")
         activateApp()
         guard panel.runModal() == .OK, let url = panel.url else { return }
+        if url.pathExtension.lowercased() == EncryptedBackup.fileExtension {
+            importEncryptedBackup(at: url)
+            return
+        }
         do {
             let entries: [(name: String, url: String)]
             var notes: [String] = []
@@ -371,6 +377,16 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
                     notes.append(String(localized: "第 \(lines) 行不是有效的 otpauth URL，已忽略。"))
                 }
             }
+            finishImport(entries, notes: notes)
+        } catch {
+            showAlert(String(localized: "导入失败"), informative: error.localizedDescription, style: .warning)
+        }
+    }
+
+    /// Adds the entries whose names are free and reports what happened.
+    private func finishImport(_ entries: [(name: String, url: String)], notes: [String]) {
+        var notes = notes
+        do {
             let added = try store.importAccounts(entries)
             if added < entries.count {
                 notes.insert(String(localized: "\(entries.count - added) 条因标识已存在而跳过。"), at: 0)
@@ -379,6 +395,64 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
             showAlert(String(localized: "成功导入 \(added) 条记录"), informative: notes.isEmpty ? nil : notes.joined(separator: "\n"))
         } catch {
             showAlert(String(localized: "导入失败"), informative: error.localizedDescription, style: .warning)
+        }
+    }
+
+    private func importEncryptedBackup(at url: URL) {
+        let data: Data
+        do {
+            data = try Data(contentsOf: url)
+            // A newer or broken file is reported before asking for a password.
+            try EncryptedBackup.inspect(data)
+        } catch {
+            showAlert(String(localized: "导入失败"), informative: error.localizedDescription, style: .warning)
+            return
+        }
+        openEncryptedBackup(data, named: url.lastPathComponent, retryMessage: nil)
+    }
+
+    /// Asks for the password, decrypts off the main thread, and asks again after a wrong password.
+    private func openEncryptedBackup(_ data: Data, named name: String, retryMessage: String?) {
+        guard let password = PasswordPrompt.password(for: name, error: retryMessage) else { return }
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            let result = Result { try EncryptedBackup.open(data, password: password) }
+            DispatchQueue.main.async {
+                guard let self else { return }
+                switch result {
+                case .success(let opened):
+                    var notes: [String] = []
+                    if opened.invalid > 0 {
+                        notes.append(String(localized: "\(opened.invalid) 条不是有效的 otpauth URL，已忽略。"))
+                    }
+                    self.finishImport(opened.entries, notes: notes)
+                case .failure(let error) where (error as? EncryptedBackupError) == .wrongPasswordOrDamaged:
+                    self.openEncryptedBackup(data, named: name, retryMessage: error.localizedDescription)
+                case .failure(let error):
+                    showAlert(String(localized: "导入失败"), informative: error.localizedDescription, style: .warning)
+                }
+            }
+        }
+    }
+
+    /// Encrypted with a password the user picks; nothing is written if they cancel either step.
+    @objc private func exportEncryptedClicked() {
+        guard let password = PasswordPrompt.newPassword() else { return }
+        let panel = NSSavePanel()
+        panel.title = String(localized: "导出加密备份")
+        panel.nameFieldStringValue = "GoldenPassport.\(EncryptedBackup.fileExtension)"
+        panel.allowedContentTypes = [UTType(filenameExtension: EncryptedBackup.fileExtension) ?? .data]
+        activateApp()
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        let accounts = store.accounts
+        DispatchQueue.global(qos: .userInitiated).async {
+            let sealed = Result { try EncryptedBackup.seal(accounts, password: password) }
+            DispatchQueue.main.async {
+                do {
+                    try EncryptedBackup.write(try sealed.get(), to: url)
+                } catch {
+                    showAlert(String(localized: "导出失败"), informative: error.localizedDescription, style: .warning)
+                }
+            }
         }
     }
 
