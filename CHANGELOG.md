@@ -9,6 +9,14 @@ original project; see [its releases](https://github.com/stanzhai/GoldenPassport/
 
 ### New features
 
+- **Import from other authenticators.** **Import from Another Authenticator…** reads Google
+  Authenticator's export QR codes ("Transfer accounts") and otpauth:// links from images you choose,
+  drop or paste, or from pasted text. Exports split over several codes can be read one by one; the
+  window shows which are missing. Every account is listed before importing: accounts you already
+  have are left unchecked, clashing names get a number, counter-based (HOTP) accounts are shown but
+  can't be imported. Pasted secrets are cleared from the clipboard after importing. Microsoft
+  Authenticator and Authy can't export accounts. QR codes are now read with Vision, which also
+  handles photos of a phone screen.
 - **Encrypted backups.** **Export → Encrypted Backup (.gpbackup)** (⌘E, moved from the
   `.secrets` backup) asks for a password twice and saves your accounts, names and order included,
   encrypted with AES-256-GCM under a key derived from the password (PBKDF2-HMAC-SHA256, 600,000

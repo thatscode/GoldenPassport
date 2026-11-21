@@ -28,7 +28,7 @@ macOS 菜单栏上的原生 Google Authenticator（谷歌身份验证器）。�
 
 ### 添加账号
 
-选择「添加…」（⌘A），粘贴 `otpauth://` URL，或者点「从二维码图片识别…」选择一张二维码图片。标识会根据 URL 里的标签自动填写，添加前可以修改。
+选择「添加…」（⌘A），粘贴 `otpauth://` URL，或者点「从二维码图片识别…」选择一张二维码图片。标识会根据 URL 里的标签自动填写，添加前可以修改。如果图片里是 Google Authenticator 导出的二维码，会改为打开导入窗口（见[从其他验证器迁移](#从其他验证器迁移)）。
 
 <img src="screenshot/add-window.png" alt="添加账号" width="560">
 
@@ -63,6 +63,7 @@ macOS 菜单栏上的原生 Google Authenticator（谷歌身份验证器）。�
 - **英文界面**：0.1.x 的菜单只有中文。新版默认跟随系统语言，也可以在菜单「语言 / Language」里固定为简体中文或英文。
 - **管理窗口**（⌘M）：拖动或用上下箭头调整顺序，双击重命名，右键修改 URL 或删除（[#12](https://github.com/stanzhai/GoldenPassport/issues/12)、[#17](https://github.com/stanzhai/GoldenPassport/issues/17)、[#29](https://github.com/stanzhai/GoldenPassport/issues/29)）。
 - **全局快捷键可配置**：⌃⌥⌘0–9（新的默认值）、⇧⌘0–9（0.1.x 的方式）、⌃⌥0–9，或者关闭。改为系统级注册，按键不会再同时传给当前 App（[#4](https://github.com/stanzhai/GoldenPassport/issues/4)、[#11](https://github.com/stanzhai/GoldenPassport/issues/11)、[#18](https://github.com/stanzhai/GoldenPassport/issues/18)）。
+- **从其他验证器导入**：从图片或剪贴板读取 Google Authenticator 导出的二维码和 otpauth:// 链接，核对列表后一次导入。
 - **加密备份**（`.gpbackup`）：导出时用你设置的密码保护账号，导入时输入同一个密码即可恢复。
 - **导出 otpauth URL 列表**（`.txt`），可以导入其他验证器 App。导入同时支持这种格式和 `.secrets` 备份文件（[#10](https://github.com/stanzhai/GoldenPassport/issues/10)、[#30](https://github.com/stanzhai/GoldenPassport/issues/30)）。
 - **开机自动启动**开关。
@@ -170,6 +171,7 @@ macOS 菜单栏上的原生 Google Authenticator（谷歌身份验证器）。�
 | 管理（排序 / 重命名）…（⌘M） | 调整顺序、重命名、修改 URL、删除账号 |
 | 删除（⌘D） | 删除账号，删除前会确认 |
 | 导入…（⌘I） | 导入加密备份（`.gpbackup`，会要求输入密码）、`.secrets` 备份文件或 otpauth URL 列表；已存在的名称会跳过 |
+| 从其他验证器导入… | 从图片或剪贴板读取 Google Authenticator 导出的二维码和 otpauth:// 链接，见[从其他验证器迁移](#从其他验证器迁移) |
 | 导出 → 加密备份（.gpbackup）（⌘E） | 用密码保护的备份，只有 GoldenPassport 能读取 |
 | 导出 → 备份文件（.secrets） | 新旧版本都能导入的备份 |
 | 导出 → otpauth URL 列表（.txt） | 每个账号一行 otpauth URL，可导入其他验证器 App |
@@ -180,6 +182,17 @@ macOS 菜单栏上的原生 Google Authenticator（谷歌身份验证器）。�
 | 检查更新… | 立即向 GitHub 查询有没有新版本；从 0.2.3 起可以直接下载并安装 |
 | 每天自动检查更新 | 每天查询一次，有新版本时显示在菜单最上方（默认关闭） |
 | 帮助（⌘H） | 在 GitHub 上打开这份说明，语言和菜单一致 |
+
+### 从其他验证器迁移
+
+「从其他验证器导入…」可以读取二维码图片和粘贴的链接：
+
+- **Google Authenticator**：在手机上选「转移账号 → 导出账号」。每张二维码最多装 10 个账号，账号多时会分成几张，窗口里会显示还差哪几张。安卓版 Google Authenticator 不允许截图，请用另一台设备拍下二维码，再把照片传到这台 Mac（比如用隔空投送）。把照片拖进窗口、点「选择图片…」选中，或者复制图片后点「粘贴」（⌘V）。
+- **网站上的 otpauth:// 链接和二维码**：直接粘贴链接；或者截图到剪贴板（⌃⇧⌘4），再点「粘贴」。
+- **Microsoft Authenticator** 和 **Authy** 无法导出账号，只能到各网站的安全设置里重新绑定。
+- 能导出 otpauth:// 链接文本的 App（比如 Ente Auth、Aegis）：用「导入…」。
+
+导入前窗口会列出所有账号：GoldenPassport 里已经有的账号默认不勾选，名称重复的会自动加上编号，按次数计数（HOTP）的账号无法导入。这些图片和链接里都有密钥：导入粘贴的内容后，GoldenPassport 会清空剪贴板，但照片和截图需要你自己删除。
 
 ### 全局快捷键
 

@@ -37,7 +37,8 @@ launch at login and update checks.
 
 Choose **Add…** (⌘A) and paste an `otpauth://` URL, or pick a QR code image with
 **Read from QR Code Image…**. The **Name** is filled in from the URL label; edit it before adding
-if you like.
+if you like. An image that holds a Google Authenticator export opens the import window instead
+(see [Moving from another authenticator](#moving-from-another-authenticator)).
 
 <img src="screenshot/en/add-window.png" alt="Add an account" width="560">
 
@@ -90,6 +91,8 @@ menu bar. From 0.2.3 on, **Check for Updates…** can download and install a new
   right-click to edit the URL or delete ([#12](https://github.com/stanzhai/GoldenPassport/issues/12), [#17](https://github.com/stanzhai/GoldenPassport/issues/17), [#29](https://github.com/stanzhai/GoldenPassport/issues/29)).
 - **Configurable global hotkeys**: ⌃⌥⌘0–9 (new default), ⇧⌘0–9 (as in 0.1.x), ⌃⌥0–9, or off.
   Registered system-wide, so the keystroke no longer also reaches the frontmost app ([#4](https://github.com/stanzhai/GoldenPassport/issues/4), [#11](https://github.com/stanzhai/GoldenPassport/issues/11), [#18](https://github.com/stanzhai/GoldenPassport/issues/18)).
+- **Import from other authenticators**: read Google Authenticator's export QR codes and otpauth://
+  links from images or the clipboard, check the list, and import them in one go.
 - **Encrypted backups** (`.gpbackup`): export your accounts protected by a password you choose,
   and import them again with that password.
 - **Export as an otpauth URL list** (`.txt`) that other authenticator apps can import; import
@@ -268,6 +271,7 @@ Click the key icon in the menu bar. Each account shows its current code; click o
 | Manage (Reorder / Rename)… (⌘M) | Reorder, rename, edit or delete accounts |
 | Delete (⌘D) | Delete an account (asks for confirmation) |
 | Import… (⌘I) | Import an encrypted backup (`.gpbackup`, asks for its password), a `.secrets` backup or an otpauth URL list; existing names are skipped |
+| Import from Another Authenticator… | Read Google Authenticator export QR codes and otpauth:// links from images or the clipboard; see [Moving from another authenticator](#moving-from-another-authenticator) |
 | Export → Encrypted Backup (.gpbackup) (⌘E) | Backup protected by a password; only GoldenPassport can read it |
 | Export → Backup File (.secrets) | Backup readable by both 0.1.x and 0.2.x |
 | Export → otpauth URL List (.txt) | One otpauth URL per account, for other authenticator apps |
@@ -278,6 +282,27 @@ Click the key icon in the menu bar. Each account shows its current code; click o
 | Check for Updates… | Ask GitHub now whether a newer release is out; from 0.2.3 on, download and install it |
 | Check for Updates Daily | Check once a day; a newer release appears at the top of the menu (off by default) |
 | Help (⌘H) | Open this README on GitHub, in the language the menu is in |
+
+### Moving from another authenticator
+
+**Import from Another Authenticator…** reads QR code images and pasted links:
+
+- **Google Authenticator**: on the phone, choose **Transfer accounts → Export accounts**. Each QR
+  code holds up to ten accounts; a larger export is split over several codes, and the window shows
+  which ones are still missing. Google Authenticator for Android doesn't allow screenshots, so
+  photograph the code with another device and send the photo to this Mac, with AirDrop for example.
+  Drop the photos on the window, pick them with **Choose Images…**, or copy an image and click
+  **Paste** (⌘V).
+- **otpauth:// links and QR codes on websites**: paste the link, or take a screenshot to the
+  clipboard (⌃⇧⌘4) and click **Paste**.
+- **Microsoft Authenticator** and **Authy** can't export accounts: set each account up again from
+  the website's security settings.
+- Apps that export a text file of otpauth:// links, such as Ente Auth or Aegis: use **Import…**.
+
+The window lists every account before importing. Accounts already in GoldenPassport are left
+unchecked, names already in use get a number, and counter-based (HOTP) accounts can't be imported.
+The images and links hold your secrets: after importing what you pasted, GoldenPassport clears the
+clipboard, but delete the photos and screenshots yourself.
 
 ### Global hotkeys
 
