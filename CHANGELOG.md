@@ -5,7 +5,7 @@ English | [简体中文](CHANGELOG.zh-CN.md)
 Notable changes in each release of this fork. Versions 0.1.0 to 0.1.7 were released by the
 original project; see [its releases](https://github.com/stanzhai/GoldenPassport/releases).
 
-## 0.3.0 (unreleased)
+## 0.3.0 (2026-11-22)
 
 ### New features
 
@@ -38,6 +38,9 @@ original project; see [its releases](https://github.com/stanzhai/GoldenPassport/
 
 - Building from source works with Xcode 16 again: its Swift compiler crashed on the 0.2.3 update
   installer, so 0.2.3 needed Xcode 26. Downloaded releases were not affected.
+- `install.sh` no longer tells everyone that the hotkeys changed and that Accessibility must be
+  granted again. Those notes now appear only when they apply: after upgrading from 0.1.x, or from
+  a build with another signature or bundle ID.
 
 ## 0.2.3 (2026-11-21)
 

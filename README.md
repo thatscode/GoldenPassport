@@ -21,6 +21,7 @@ A native Google Authenticator for the macOS menu bar: TOTP codes one click (or o
 - [Menu bar menu](#menu-bar-menu)
 - [Adding an account](#adding-an-account)
 - [Managing accounts](#managing-accounts)
+- [Importing from another authenticator](#importing-from-another-authenticator)
 - [Hotkey settings](#hotkey-settings)
 - [Local HTTP API](#local-http-api)
 
@@ -51,6 +52,15 @@ buttons at the bottom.
 
 <img src="screenshot/en/manage-window.png" alt="Manage accounts" width="560">
 
+### Importing from another authenticator
+
+**Import from Another Authenticator…** reads Google Authenticator's export QR codes and otpauth://
+links from images you drop, choose or paste. Every account is listed before importing: accounts
+you already have stay unchecked, and accounts GoldenPassport can't use are marked. See
+[Moving from another authenticator](#moving-from-another-authenticator).
+
+<img src="screenshot/en/import-window.png" alt="Import from another authenticator" width="560">
+
 ### Hotkey settings
 
 The **Global Hotkeys** submenu sets the modifier keys used with 0–9: ⌃⌥⌘ (default), ⇧⌘ as in
@@ -67,7 +77,7 @@ Chinese account names display correctly.
 
 <img src="screenshot/restful-api.png" alt="Local HTTP API in a browser" width="560">
 
-# What's new in 0.2
+# What's new since 0.1.7
 
 Compared with the original 0.1.7 release. The [changelog](CHANGELOG.md) lists the changes in every
 release.
@@ -76,6 +86,8 @@ release.
 from running next to the first, and moves to the bundle ID `com.thatscode.GoldenPassport`. 0.2.2
 keeps the menu bar icon where it was when you upgrade, so that it can't vanish from a crowded
 menu bar. From 0.2.3 on, **Check for Updates…** can download and install a new release for you.
+0.3.0 adds encrypted backups and importing from other authenticators such as Google
+Authenticator, and keeps copied codes out of clipboard history.
 
 ### New features
 
@@ -231,23 +243,24 @@ a new bundle ID.
 ### Rolling back
 
 Run `rollback.sh` the same way to put back the app you had before. 0.1.x and the 0.2.0 betas
-don't use the Keychain: they see your accounts as they were when 0.2.x moved them there
-(`gp.secrets` itself is never modified). To take later changes along, export a `.secrets` backup
-from 0.2.x first and import it there.
+don't use the Keychain: they see your accounts as they were when they moved there (`gp.secrets`
+itself is never modified). To take later changes along, export a `.secrets` backup from the new
+version first and import it there.
 
-When you upgrade again, 0.2.x keeps using the accounts in the Keychain. Accounts you added or
+When you upgrade again, the new version keeps using the accounts in the Keychain. Accounts you added or
 changed in 0.1.x in the meantime are listed so you can choose which ones to import; nothing you
 already have is overwritten or deleted, and an account whose URL changed is imported next to the
 existing one as "name (0.1.x)". Changes made in a beta are not carried over; `cleanup.sh` lists
 them before it deletes the beta's `accounts.json`.
 
 `rollback.sh --restore-data` also resets the data folder to how it was before the install, and
-the changes made in 0.2.x are then lost: installing 0.2.x again migrates from the restored files
-and keeps the accounts that were in the Keychain only as a spare item, `accounts.replaced-<time>`.
+the changes made since are then lost: installing the new version again migrates from the restored
+files and keeps the accounts that were in the Keychain only as a spare item, `accounts.replaced-<time>`.
 
 ### Cleaning up after the upgrade
 
-Once 0.2.x works for you and you no longer need to roll back, run `cleanup.sh` the same way. It
+Once the new version works for you and you no longer need to roll back, run `cleanup.sh` the same
+way. It
 checks that your accounts read back from the Keychain and lists what it will delete: the installer
 backups and the old data files (`gp.secrets`, a beta's `accounts.json`), which contain your
 secrets unencrypted, along with the 0.1.x `config.plist`. It warns about accounts that exist only
@@ -273,7 +286,7 @@ Click the key icon in the menu bar. Each account shows its current code; click o
 | Import… (⌘I) | Import an encrypted backup (`.gpbackup`, asks for its password), a `.secrets` backup or an otpauth URL list; existing names are skipped |
 | Import from Another Authenticator… | Read Google Authenticator export QR codes and otpauth:// links from images or the clipboard; see [Moving from another authenticator](#moving-from-another-authenticator) |
 | Export → Encrypted Backup (.gpbackup) (⌘E) | Backup protected by a password; only GoldenPassport can read it |
-| Export → Backup File (.secrets) | Backup readable by both 0.1.x and 0.2.x |
+| Export → Backup File (.secrets) | Backup readable by 0.1.x and by 0.2 or later |
 | Export → otpauth URL List (.txt) | One otpauth URL per account, for other authenticator apps |
 | HTTP API | Start or stop the local API, start it at launch, open it in the browser, change the port |
 | Global Hotkeys | Choose the modifier keys for the hotkeys, or turn them off |
@@ -337,7 +350,7 @@ echo "$code"
 >   every secret (owner-only permissions). Never share or sync it, and delete it once you no
 >   longer need to roll back (`cleanup.sh`, see [Cleaning up](#cleaning-up-after-the-upgrade)).
 > - **Legacy data file**: after migration, `gp.secrets` stays in the data directory so the
->   old app keeps working. It is never updated again, so **accounts you delete in 0.2.x
+>   old app keeps working. It is never updated again, so **accounts you delete in 0.2 or later
 >   remain in it**. Delete it once you are sure you won't go back to 0.1.x (`cleanup.sh`).
 > - **Beta data file**: after 0.2.0 moves your accounts into the Keychain, a beta's
 >   `accounts.json` stays in the data directory, unencrypted, so that you can roll back. Delete it
@@ -381,7 +394,7 @@ betas:
 1. **Keep the damaged file**: rename it, for example to `accounts.damaged.json`. Don't delete it.
 2. **If you have a backup of `accounts.json`**, copy it back into the data folder and start
    GoldenPassport. Backups can come from Time Machine, or from
-   `~/GoldenPassport-backups/<timestamp>/data/` if you ran `install.sh` while 0.2.x was already
+   `~/GoldenPassport-backups/<timestamp>/data/` if you ran `install.sh` while 0.2 or later was already
    installed; that copy holds your accounts as they were at that install.
 3. **If you only have an export** (`.gpbackup`, `.secrets` or `.txt`): if `gp.secrets` is in the data folder,
    move it out for now as well. Start GoldenPassport, which now starts with an empty list, and
