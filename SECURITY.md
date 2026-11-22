@@ -9,10 +9,9 @@ at them that you shouldn't have, please tell us privately.
 
 | Version | Supported |
 |---|---|
-| 0.2.x, from this repository | ✅ |
+| The latest release, from this repository | ✅ |
+| Older releases | ❌ Please update |
 | 0.1.x, from the archived [stanzhai/GoldenPassport](https://github.com/stanzhai/GoldenPassport) | ❌ Please upgrade |
-
-Until the first 0.2.0 release is published, fixes land in the `modernize` branch.
 
 ## Reporting a vulnerability
 
@@ -32,8 +31,8 @@ codes, and no files from `~/Library/Application Support/GoldenPassport/` or
 
 These are documented in the README and are not vulnerabilities in themselves:
 
-- Secrets are stored unencrypted, protected by owner-only file permissions. Optionally storing
-  them in the Keychain is on the [roadmap](README.md#roadmap).
+- The `.secrets` and `.txt` exports hold every secret unencrypted; the app warns before writing
+  them. An encrypted backup (`.gpbackup`) is only as strong as its password.
 - The HTTP API has no password: while it runs, anything running as you on the Mac can read
   every code. It is off on new installs.
 - An upgrade from 0.1.x leaves unencrypted copies (installer backups and `gp.secrets`) until
@@ -52,10 +51,9 @@ GoldenPassport 保存着生成两步验证码的密钥。如果你发现了不�
 
 | 版本 | 是否支持 |
 |---|---|
-| 0.2.x，来自本仓库 | ✅ |
+| 最新版，来自本仓库 | ✅ |
+| 更早的版本 | ❌ 请更新 |
 | 0.1.x，来自已归档的 [stanzhai/GoldenPassport](https://github.com/stanzhai/GoldenPassport) | ❌ 请升级 |
-
-第一个 0.2.0 正式版发布之前，修复都在 `modernize` 分支上。
 
 ## 报告漏洞
 
@@ -75,7 +73,7 @@ GoldenPassport 保存着生成两步验证码的密钥。如果你发现了不�
 
 下面这些在说明文档里已经写明，本身不算漏洞：
 
-- 密钥未加密保存，只靠文件权限保护（仅本人可读）。可选地改存到钥匙串，已列入[后续计划](README.zh-CN.md#后续计划)。
+- `.secrets` 和 `.txt` 两种导出文件包含未加密的全部密钥，导出前会提示。加密备份（`.gpbackup`）的安全取决于密码。
 - HTTP 接口没有访问密码：开启期间，这台 Mac 上以你的身份运行的任何程序都能读取全部验证码。全新安装时默认关闭。
 - 从 0.1.x 升级后，未加密的副本（安装备份和 `gp.secrets`）会一直保留，直到你运行 `cleanup.sh`。见[数据与安全](README.zh-CN.md#数据与安全)。
 

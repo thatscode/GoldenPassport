@@ -6,10 +6,10 @@ A native Google Authenticator for the macOS menu bar: TOTP codes one click (or o
 
 > **This is a maintained fork of [stanzhai/GoldenPassport](https://github.com/stanzhai/GoldenPassport).**
 > The original project has been inactive since 2022 and its Homebrew cask was disabled in
-> September 2026. Version 0.2 here is a ground-up rewrite for current macOS and a drop-in
-> upgrade for 0.1.x users: same app, same data folder, your existing accounts are migrated
-> automatically. All credit for the original idea and design goes to
-> [StanZhai](https://github.com/stanzhai).
+> September 2026; since November 2026 the cask installs this fork. Version 0.2 here is a
+> ground-up rewrite for current macOS and a drop-in upgrade for 0.1.x users: same app, same
+> data folder, your existing accounts are migrated automatically. All credit for the original
+> idea and design goes to [StanZhai](https://github.com/stanzhai).
 
 - Runs natively on **Apple Silicon** and on Intel Macs, macOS 13 or later
 - Signed with a Developer ID and notarized by Apple; no third-party dependencies
@@ -180,9 +180,19 @@ Authenticator, and keeps copied codes out of clipboard history.
 Releases are signed with a Developer ID and notarized by Apple, so they open like any other
 downloaded app.
 
-> [!NOTE]
-> The Homebrew cask (`brew install --cask goldenpassport`) still points to the old 0.1.7 and has
-> been disabled by Homebrew. Bringing it back is on the [roadmap](#roadmap).
+### Installing with Homebrew
+
+```sh
+brew install --cask goldenpassport
+```
+
+This installs the same release that is published here. Update it from the app with **Check for
+Updates…** (see [Updating](#updating)); the cask declares that the app updates itself, so a plain
+`brew upgrade` skips it.
+
+If the Mac has 0.1.x on it (including 0.1.7 installed with Homebrew), upgrading with `install.sh`
+as described under "Upgrading from 0.1.x, or installing fresh" below is recommended: it makes a
+backup first and checks every account after the migration.
 
 ### Updating
 
@@ -467,10 +477,6 @@ folder, so it can run next to the installed app. The copy holds your secrets in 
 data migration without the user interface and checks the result; `install.sh` relies on it.
 `GP_KEYCHAIN_TESTS=1 make test` also runs the tests that use the real login Keychain, with a
 throwaway item.
-
-# Roadmap
-
-- Bring the Homebrew cask back
 
 # Credits & license
 

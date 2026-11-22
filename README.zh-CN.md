@@ -5,7 +5,7 @@
 macOS 菜单栏上的原生 Google Authenticator（谷歌身份验证器）。点一下菜单，或者按一个快捷键，就能拿到 TOTP 验证码。
 
 > **这是 [stanzhai/GoldenPassport](https://github.com/stanzhai/GoldenPassport) 的维护分支（fork）。**
-> 原项目从 2022 年起就没有更新了，Homebrew 也在 2026 年 9 月禁用了它的 cask。这里的 0.2 版本针对新版 macOS 从头重写，0.1.x 的用户可以直接覆盖升级：还是同一个 App、同一个数据目录，已有的账号会自动迁移。
+> 原项目从 2022 年起就没有更新了，Homebrew 也在 2026 年 9 月禁用了它的 cask，2026 年 11 月起这个 cask 改为安装本 fork。这里的 0.2 版本针对新版 macOS 从头重写，0.1.x 的用户可以直接覆盖升级：还是同一个 App、同一个数据目录，已有的账号会自动迁移。
 > 最初的创意和设计都来自原作者 [StanZhai](https://github.com/stanzhai)，在此致谢。
 
 - **Apple Silicon 原生运行**，也支持 Intel 芯片的 Mac，需要 macOS 13 或更高版本
@@ -115,8 +115,15 @@ macOS 菜单栏上的原生 Google Authenticator（谷歌身份验证器）。�
 
 正式版使用 Developer ID 签名并经过 Apple 公证，下载后可以像其他 App 一样直接打开。
 
-> [!NOTE]
-> Homebrew 上的 cask（`brew install --cask goldenpassport`）指向的仍是旧版 0.1.7，而且已被 Homebrew 禁用。恢复 Homebrew cask 在[后续计划](#后续计划)中。
+### 用 Homebrew 安装
+
+```sh
+brew install --cask goldenpassport
+```
+
+装上的就是这里发布的正式版。之后用 App 里的「检查更新…」更新（见[更新](#更新)）；这个 cask 声明了 App 会自己更新，所以不带参数的 `brew upgrade` 会跳过它。
+
+如果这台 Mac 上装着 0.1.x（包括以前用 Homebrew 装的 0.1.7），推荐按下面「从 0.1.x 升级，或全新安装」的方法用 `install.sh` 升级：它会先备份，迁移后逐条核对账号。
 
 ### 更新
 
@@ -284,10 +291,6 @@ make beta      # 同上，标为预发布版
 构建产物输出到 `~/Library/Caches/GoldenPassport-build/<variant>/`。构建出的 App 使用 ad-hoc 签名并启用 Hardened Runtime，账号以明文存在数据目录的 `accounts.json` 里：系统把每个 ad-hoc 构建都当成新的程序，每次更新后都会重新询问钥匙串授权。设置 `SIGN_IDENTITY="Developer ID Application: …"` 会用证书签名，同时启用钥匙串存储（也可以单独设置 `KEYCHAIN=1`）；配合 `make package` 再设置 `NOTARIZE=1`，会提交 Apple 公证并装订公证票据（`scripts/notarize.sh`）。`ARCHS="arm64 x86_64"` 可以构建通用版。
 
 开发版首次启动时，如果正式版的数据目录里有 0.1.x 的数据（`gp.secrets`、`config.plist`），会把它复制到 `GoldenPassport-Dev/`；开发版从不写入正式版的数据目录，所以可以和已安装的正式版同时运行。这份副本是明文的密钥，用完请删除 `GoldenPassport-Dev/`。`GoldenPassport --migrate-data [--data-dir PATH]` 可以在不打开界面的情况下执行数据迁移并核对结果，`install.sh` 就是靠它完成核对的。`GP_KEYCHAIN_TESTS=1 make test` 会额外运行读写真实登录钥匙串的测试（使用临时条目）。
-
-# 后续计划
-
-- 恢复 Homebrew cask
 
 # 致谢与协议
 
