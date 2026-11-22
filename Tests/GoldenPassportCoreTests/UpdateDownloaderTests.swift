@@ -121,7 +121,10 @@ struct UpdateDownloaderTests {
         #expect(!FileManager.default.fileExists(atPath: directory.appendingPathComponent("package.zip").path))
     }
 
-    @Test func stalledDownloadFailsAfterIdleTimeout() async throws {
+    // The time bounds only show that the configured timeout fired rather than the defaults (60 s
+    // idle, 600 s total): loaded CI runners fire timers seconds late (4.5 s seen for 0.3 s).
+    @Test(.timeLimit(.minutes(1)))
+    func stalledDownloadFailsAfterIdleTimeout() async throws {
         let url = Self.url()
         StubProtocol.register(.init(contentLength: 30, stall: true), for: url)
         let start = Date()
@@ -129,7 +132,7 @@ struct UpdateDownloaderTests {
             _ = try await Self.downloader(idle: 0.3).download(UpdatePackage(url: url, size: 30, sha256: nil),
                                                              into: try makeTempDirectory()) { _, _ in }
         }
-        #expect(Date().timeIntervalSince(start) < 2)
+        #expect(Date().timeIntervalSince(start) < 15)
     }
 
     @Test func slowButSteadyDownloadsAreNotCutOff() async throws {
@@ -141,15 +144,17 @@ struct UpdateDownloaderTests {
         #expect(try Data(contentsOf: file).count == 5)
     }
 
-    @Test func totalTimeoutStopsEndlessDownloads() async throws {
+    /// Data keeps arriving, so only the total timeout can end it (idle is far above the bound).
+    @Test(.timeLimit(.minutes(1)))
+    func totalTimeoutStopsEndlessDownloads() async throws {
         let url = Self.url()
         StubProtocol.register(.init(interval: 0.05, endless: true), for: url)
         let start = Date()
         await expectUpdateError("download") {
-            _ = try await Self.downloader(idle: 5, total: 0.5).download(UpdatePackage(url: url, size: nil, sha256: nil),
-                                                                       into: try makeTempDirectory()) { _, _ in }
+            _ = try await Self.downloader(idle: 30, total: 0.5).download(UpdatePackage(url: url, size: nil, sha256: nil),
+                                                                        into: try makeTempDirectory()) { _, _ in }
         }
-        #expect(Date().timeIntervalSince(start) < 2.5)
+        #expect(Date().timeIntervalSince(start) < 15)
     }
 
     @Test func cancellingStopsAndRemovesThePartialFile() async throws {
