@@ -3,8 +3,8 @@
 #
 #   bash rollback.sh [--restore-data] [backup-dir]
 #
-# By default only the app is restored and the data stays as it is: 0.2.x never
-# writes the gp.secrets that 0.1.x reads, and an earlier 0.2.x build reads the same
+# By default only the app is restored and the data stays as it is: 0.2 and later never
+# write the gp.secrets that 0.1.x reads, and a 0.2.0 beta reads the same
 # accounts.json. Once the accounts are in the login Keychain (accounts-v2.json in the
 # data directory), a restored build that doesn't use the Keychain sees accounts.json or
 # gp.secrets as they were at the move; the script says so (I5). --restore-data also
@@ -45,15 +45,15 @@ usage() {
   say "用法：bash rollback.sh [--restore-data] [备份目录]
 
 恢复 install.sh 替换掉的 GoldenPassport。默认只恢复 App，数据保持不变：0.1.x 读取的
-gp.secrets 从未被 0.2.x 改动过，更早的 0.2.x 版本读取的是同一个 accounts.json。
+gp.secrets 从未被 0.2 及以后的版本改动过，0.2.0 内测版读取的是同一个 accounts.json。
 账号已经存进钥匙串时，不用钥匙串的旧版本只能看到迁移那一刻的数据，脚本会提醒你。
 加上 --restore-data 会把整个数据目录也恢复到安装前，安装之后做的改动会丢失。
 不指定备份目录时，使用 $BACKUP_ROOT 里最新的一份。
 " "Usage: bash rollback.sh [--restore-data] [backup-folder]
 
 Restores the GoldenPassport app that install.sh replaced. By default only the app
-is restored and your data stays as it is: 0.2.x never writes the gp.secrets that
-0.1.x reads, and an earlier 0.2.x build reads the same accounts.json. Once your
+is restored and your data stays as it is: 0.2 and later never write the gp.secrets
+that 0.1.x reads, and a 0.2.0 beta reads the same accounts.json. Once your
 accounts are in the keychain, an older version that doesn't use it only sees the
 data from the time they moved; the script tells you so.
 --restore-data also resets the whole data folder to its state before the install,
@@ -129,7 +129,7 @@ else
 fi
 
 step "检查数据" "Checking data"
-# What the restored app reads: 0.1.x its gp.secrets, a 0.2.x build without the Keychain
+# What the restored app reads: 0.1.x its gp.secrets, a 0.2 build without the Keychain
 # accounts.json, one with it (Info.plist GPKeychainService) the login Keychain.
 RESTORED=none
 if [ -d "$TARGET" ]; then

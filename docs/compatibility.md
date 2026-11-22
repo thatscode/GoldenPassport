@@ -13,9 +13,9 @@ GoldenPassport 保存的是 MFA 密钥。数据一旦丢失，用户可能被锁
 | 账号数据（格式 2） | 登录钥匙串里的通用密码条目：service 取自 Info.plist 的 `GPKeychainService`（正式版 `site.stanzhai.GoldenPassport`；0.2.1 改了 bundle id，service 名不变），account 为 `accounts` | 设置了 `GPKeychainService` 的构建（签名的正式版） | **数据格式 2**：`{"formatVersion": 2, "accounts": [{id, name, url}]}`，见 [D3 设计](design/d3-keychain.md) |
 | 格式 2 的标记文件 | 数据目录 `accounts-v2.json` | 格式 2 的构建、`rollback.sh`、`cleanup.sh`；不用钥匙串的构建看到它就停下 | JSON `{formatVersion: 2, storage: "keychain", service, migratedFrom, migratedAt}`，全新安装没有 `migratedFrom`；不含密钥和账号名称 |
 | 账号数据（格式 1） | 数据目录 `accounts.json` | 内测版和没有设置 `GPKeychainService` 的构建；格式 2 的迁移逻辑 | **数据格式 1**：JSON 数组，元素为 `{id, name, url}`。格式 2 的构建从不修改它 |
-| 设置 | 数据目录 `settings.json` | 0.2.x 各版本 | JSON 对象，所有字段可选 |
-| 旧版数据 | 数据目录 `gp.secrets`、`config.plist` | 0.1.x；0.2.x 的迁移逻辑 | **数据格式 0**：NSKeyedArchiver `[String: String]`。0.2.x 从不修改内容，只把权限收紧为 `0600` |
-| 旧版数据的基线 | 数据目录 `legacy-baseline.json` | 0.2.x 各版本 | JSON `{version: 1, source: "gp.secrets", recordedAt, entries: {名称: URL 指纹}}`，不含密钥和 URL（I6） |
+| 设置 | 数据目录 `settings.json` | 0.2 起的各版本 | JSON 对象，所有字段可选 |
+| 旧版数据 | 数据目录 `gp.secrets`、`config.plist` | 0.1.x；0.2 起的迁移逻辑 | **数据格式 0**：NSKeyedArchiver `[String: String]`。0.2 起的版本从不修改内容，只把权限收紧为 `0600` |
+| 旧版数据的基线 | 数据目录 `legacy-baseline.json` | 0.2 起的各版本 | JSON `{version: 1, source: "gp.secrets", recordedAt, entries: {名称: URL 指纹}}`，不含密钥和 URL（I6） |
 | 备份导出 | 用户保存的 `.secrets` | 0.1.x 和所有新版本的「导入」 | 与数据格式 0 相同 |
 | URL 列表导出 | 用户保存的 `.txt` | 任何支持 otpauth 的验证器 | 每行一条 otpauth URL |
 | HTTP 接口 | `GET /`、`GET /code/<名称>` | 用户脚本、浏览器 | `/code/` 返回纯文本验证码；找不到时返回 404 |

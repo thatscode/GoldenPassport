@@ -1,6 +1,6 @@
 #!/bin/bash
 # Deletes the unencrypted secret copies an upgrade from 0.1.x leaves behind, once
-# the user is happy with 0.2.x and no longer needs to roll back:
+# the user is happy with the new version and no longer needs to roll back:
 #   - installer backups in ~/GoldenPassport-backups/
 #   - the legacy gp.secrets / config.plist in the data directory
 #     (and legacy-baseline.json, which only describes gp.secrets)
@@ -8,7 +8,7 @@
 #
 #   bash cleanup.sh [--yes]
 #
-# Refuses to run unless 0.2.x is installed and its accounts read back cleanly.
+# Refuses to run unless 0.2 or later is installed and its accounts read back cleanly.
 # Warns about accounts changed in 0.1.x after the migration that were never
 # imported, and about accounts only accounts.json still has: their only copies are
 # about to be deleted. Afterwards rollback.sh can no longer restore 0.1.x or a beta.
@@ -51,20 +51,20 @@ plural() { if [ "$1" = 1 ]; then printf '%s %s' "$1" "$2"; else printf '%s %s' "
 usage() {
   say "用法：bash cleanup.sh [--yes]
 
-确认 0.2.x 使用正常、不再需要回退后，删除从 0.1.x 升级时留下的未加密密钥副本：
+确认新版使用正常、不再需要回退后，删除从 0.1.x 升级时留下的未加密密钥副本：
   - $BACKUP_ROOT 里的安装备份
   - 数据目录里旧版的 gp.secrets / config.plist
   - 账号已经存进钥匙串时，数据目录里内测版的 accounts.json
-只有在已安装 0.2.x、并且账号读取正常时才会执行。删除前要输入 yes 确认，
+只有在已安装 0.2 或更新的版本、并且账号读取正常时才会执行。删除前要输入 yes 确认，
 --yes 跳过确认。清理之后，rollback.sh 就不能再回退到 0.1.x 或内测版了。
 " "Usage: bash cleanup.sh [--yes]
 
-Once 0.2.x works for you and you no longer need to roll back, deletes the
+Once the new version works for you and you no longer need to roll back, deletes the
 unencrypted copies of your secrets that the upgrade from 0.1.x left behind:
   - the installer backups in $BACKUP_ROOT
   - the legacy gp.secrets / config.plist in the data folder
   - the beta's accounts.json, once your accounts are in the keychain
-Runs only if 0.2.x is installed and your accounts read back cleanly. Asks you to
+Runs only if 0.2 or later is installed and your accounts read back cleanly. Asks you to
 type yes before deleting; --yes skips that. Afterwards rollback.sh can no longer
 restore 0.1.x or a beta.
 "

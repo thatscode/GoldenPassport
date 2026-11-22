@@ -1,4 +1,4 @@
-# Installing GoldenPassport 0.2.x
+# Installing GoldenPassport
 
 > [!CAUTION]
 > **⚠️ Installing leaves an unencrypted copy of your MFA secrets on disk**
@@ -10,12 +10,12 @@
 > - **Don't** copy, upload or send it to anyone, including the maintainers when you ask for help.
 > - **Don't** keep it in iCloud Drive or another synced folder, or in a backup that goes to the
 >   cloud.
-> - Once 0.2.x works for you and you no longer need to roll back, **delete it with `cleanup.sh`**
+> - Once the new version works for you and you no longer need to roll back, **delete it with `cleanup.sh`**
 >   (see [Cleaning up](#cleaning-up)).
 > - `.secrets` and `.txt` exports also contain every secret unencrypted. Delete them when you are
 >   done.
 
-GoldenPassport 0.2.x is a ground-up rewrite for current macOS. It runs natively on Apple Silicon,
+Since 0.2, GoldenPassport is a ground-up rewrite for current macOS. It runs natively on Apple Silicon,
 also runs on Intel, and needs macOS 13 or later. It keeps your accounts in your login Keychain
 instead of a plaintext file. When you upgrade from 0.1.x or a beta, your accounts are moved there
 automatically and the old data file is never modified, so you can roll back at any time.
@@ -94,11 +94,11 @@ In Terminal, type `bash `, drag `rollback.sh` into the window and press Return. 
 app that was installed before; your data stays as it is.
 
 - **Back to 0.1.x**: your original `gp.secrets` was never modified, so 0.1.x finds all its
-  accounts. Accounts you added or changed in 0.2.x are not visible to 0.1.x. To keep them, export
-  a `.secrets` backup from 0.2.x first and import it into 0.1.x, then delete the export.
+  accounts. Accounts you added or changed in 0.2 or later are not visible to 0.1.x. To keep them, export
+  a `.secrets` backup from the new version first and import it into 0.1.x, then delete the export.
 - **Back to a 0.2.0 beta**: betas keep the accounts in `accounts.json`, so the beta sees them as
-  they were when 0.2.x moved them into the Keychain. To keep later changes, export a `.secrets`
-  backup from 0.2.x first and import it into the beta. When you upgrade again, 0.2.x keeps using
+  they were when they moved into the Keychain. To keep later changes, export a `.secrets`
+  backup from the new version first and import it into the beta. When you upgrade again, the new version keeps using
   the Keychain; changes made in the beta are not carried over, and `cleanup.sh` lists them before
   it deletes `accounts.json`.
 - **Further back**: without arguments, `rollback.sh` uses the newest backup, which is the version
@@ -107,7 +107,7 @@ app that was installed before; your data stays as it is.
   space, drag the oldest folder from `~/GoldenPassport-backups/` into the window and press Return.
 - `bash rollback.sh --restore-data` also resets the whole data folder to how it was before the
   install. Changes made since then are lost. The item in the Keychain is left as it is: installing
-  0.2.x again migrates from the restored data and keeps the earlier item as
+  the new version again migrates from the restored data and keeps the earlier item as
   `accounts.replaced-<time>`, which you can delete in Keychain Access.
 
 Accounts you add or change in 0.1.x after rolling back are not lost when you upgrade again:
@@ -117,28 +117,28 @@ in 0.1.x is imported next to the existing one as "name (0.1.x)".
 
 ## Cleaning up
 
-Once 0.2.x works for you and you no longer need to roll back, type `bash ` in Terminal, drag
+Once the new version works for you and you no longer need to roll back, type `bash ` in Terminal, drag
 `cleanup.sh` into the window and press Return. It checks that your accounts read back from the
 Keychain, lists what it will delete and deletes only after you type `yes`. After that you can no
-longer roll back to 0.1.x or a beta; 0.2.x itself keeps working as before.
+longer roll back to 0.1.x or a beta; GoldenPassport itself keeps working as before.
 
 These places contain your secrets:
 
 | Location | Contents | What to do |
 |---|---|---|
-| Login Keychain, item **GoldenPassport** | The accounts 0.2.x uses | Keep |
+| Login Keychain, item **GoldenPassport** | The accounts GoldenPassport uses | Keep |
 | `~/GoldenPassport-backups/` | The app and data as they were before each install, unencrypted | **Delete** (`cleanup.sh` does this) |
-| `~/Library/Application Support/GoldenPassport/accounts.json` | A beta's data file, unencrypted, kept for rolling back to the beta. Changes you make in 0.2.x are not in it | Delete once you won't go back to a beta (`cleanup.sh` does this) |
-| `~/Library/Application Support/GoldenPassport/gp.secrets` | The 0.1.x data file, kept for rolling back. Accounts you delete in 0.2.x **are still in it** | Delete once you won't go back to 0.1.x (`cleanup.sh` does this) |
+| `~/Library/Application Support/GoldenPassport/accounts.json` | A beta's data file, unencrypted, kept for rolling back to the beta. Changes you make in 0.2 or later are not in it | Delete once you won't go back to a beta (`cleanup.sh` does this) |
+| `~/Library/Application Support/GoldenPassport/gp.secrets` | The 0.1.x data file, kept for rolling back. Accounts you delete in 0.2 or later **are still in it** | Delete once you won't go back to 0.1.x (`cleanup.sh` does this) |
 | `.secrets` / `.txt` files you exported | Every secret, unencrypted | Delete when you are done |
 
 `cleanup.sh` also deletes the 0.1.x `config.plist` and `legacy-baseline.json`, which records only
-account names and URL fingerprints, no secrets. Before deleting anything, it warns you if 0.2.x
+account names and URL fingerprints, no secrets. Before deleting anything, it warns you if the Keychain
 holds fewer accounts than `gp.secrets`, if accounts you changed in 0.1.x after a rollback haven't
 been imported yet, or if `accounts.json` has accounts the Keychain doesn't: their secrets exist
 only in the files it is about to delete.
 
-0.2.x makes the data folder and the 0.1.x data files readable only by you (0.1.x left them
+GoldenPassport 0.2 and later make the data folder and the 0.1.x data files readable only by you (0.1.x left them
 readable by every user on this Mac). Their contents are not changed.
 
 ## Getting help

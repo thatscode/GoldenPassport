@@ -1,5 +1,5 @@
 #!/bin/bash
-# Installs (or upgrades to) GoldenPassport 0.2.x over an existing installation.
+# Installs (or upgrades to) GoldenPassport 0.2 or later over an existing installation.
 #
 #   bash install.sh [GoldenPassport.app | GoldenPassport-*.zip]
 #
@@ -128,6 +128,21 @@ OLD_VERSION="$(describe_app "$TARGET")"
 info "新版本：$NEW_VERSION" "New version: $NEW_VERSION"
 info "当前已安装：$OLD_VERSION" "Installed now: $OLD_VERSION"
 info "数据目录：$DATA_DIR" "Data folder: $DATA_DIR"
+
+# What this upgrade changes for the user, for the notes at the end. macOS ties the Accessibility
+# grant to the signing identity and bundle ID: a same-team update keeps it (ad hoc builds never do).
+team_id() { codesign -dv "$1" 2>&1 | sed -n 's/^TeamIdentifier=//p'; }
+FRESH_INSTALL=1; FROM_01X=0; REGRANT=0; OLD_KEYCHAIN=0
+if [ -d "$TARGET" ]; then
+  FRESH_INSTALL=0
+  [ -n "$(plist_value "$TARGET" GPDataDirectoryName)" ] || FROM_01X=1
+  [ -z "$(plist_value "$TARGET" GPKeychainService)" ] || OLD_KEYCHAIN=1
+  OLD_TEAM="$(team_id "$TARGET")"; NEW_TEAM="$(team_id "$SOURCE")"
+  if [ "$(plist_value "$TARGET" CFBundleIdentifier)" != "$(plist_value "$SOURCE" CFBundleIdentifier)" ] \
+    || [ -z "$NEW_TEAM" ] || [ "$NEW_TEAM" = "not set" ] || [ "$OLD_TEAM" != "$NEW_TEAM" ]; then
+    REGRANT=1
+  fi
+fi
 
 # --- 2. Backup --------------------------------------------------------------
 step "备份当前的 App 和数据" "Backing up the current app and data"
@@ -261,11 +276,24 @@ if [ "${GP_NO_LAUNCH:-0}" != "1" ]; then
   open "$TARGET"
 fi
 
-KEYCHAIN_NOTE=""; LEFT_NOTE=""
+KEYCHAIN_NOTE=""; LEFT_NOTE=""; HOTKEY_NOTE=""; ACCESS_NOTE=""
+# Accounts already in the Keychain before this install need no note about it.
+NEW_TO_KEYCHAIN=0
+[ "$STORAGE" != keychain ] || [ "$OLD_KEYCHAIN" = 1 ] || NEW_TO_KEYCHAIN=1
 if [ "$UI_LANG" = zh-Hans ]; then
-[ "$STORAGE" != keychain ] || KEYCHAIN_NOTE="  • 账号现在保存在登录钥匙串里（「钥匙串访问」中名为 GoldenPassport 的条目），
+[ "$NEW_TO_KEYCHAIN" = 0 ] || KEYCHAIN_NOTE="  • 账号现在保存在登录钥匙串里（「钥匙串访问」中名为 GoldenPassport 的条目），
     数据目录里不再写入密钥。
 "
+[ "$FROM_01X" = 0 ] || HOTKEY_NOTE="  • 全局快捷键默认是 ⌃⌥⌘0–9（旧版是 ⇧⌘0–9），可在菜单「全局快捷键」里切换。
+"
+if [ "$FRESH_INSTALL" = 1 ]; then
+  ACCESS_NOTE="  • 要让快捷键自动填入验证码，需要授权「辅助功能」：系统设置 → 隐私与安全性 → 辅助功能。
+"
+elif [ "$REGRANT" = 1 ]; then
+  ACCESS_NOTE="  • 自动填入验证码需要重新授权「辅助功能」：系统设置 → 隐私与安全性 → 辅助功能。
+    如果列表里已有 GoldenPassport 但不生效，先用「−」删掉，再在菜单里重新选一次快捷键。
+"
+fi
 [ -z "$LEFT_ZH" ] || LEFT_NOTE="  • 数据目录里的 $LEFT_ZH 也是明文，会一直保留（供回退使用），
     其中包括你之后在新版里删除的记录。
 "
@@ -274,10 +302,7 @@ cat <<EOF
 安装完成：$OLD_VERSION → $NEW_VERSION
 
 注意事项
-  • 全局快捷键默认是 ⌃⌥⌘0–9（旧版是 ⇧⌘0–9），可在菜单「全局快捷键」里切换。
-  • 自动填入验证码需要重新授权「辅助功能」：系统设置 → 隐私与安全性 → 辅助功能。
-    如果列表里已有 GoldenPassport 但不生效，先用「−」删掉，再在菜单里重新选一次快捷键。
-  • 回退到安装前的版本：bash "$SCRIPT_DIR/rollback.sh"
+${HOTKEY_NOTE}${ACCESS_NOTE}  • 回退到安装前的版本：bash "$SCRIPT_DIR/rollback.sh"
 $KEYCHAIN_NOTE
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   ⚠️  重要：备份中含有全部 MFA 密钥的未加密副本
@@ -289,9 +314,21 @@ ${LEFT_NOTE}  • 确认新版使用正常、不再需要回退后，运行清�
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 EOF
 else
-[ "$STORAGE" != keychain ] || KEYCHAIN_NOTE="  • Your accounts are now in the login keychain (the item named GoldenPassport in
+[ "$NEW_TO_KEYCHAIN" = 0 ] || KEYCHAIN_NOTE="  • Your accounts are now in the login keychain (the item named GoldenPassport in
     Keychain Access); the data folder no longer holds any secrets.
 "
+[ "$FROM_01X" = 0 ] || HOTKEY_NOTE="  • Global hotkeys now default to ⌃⌥⌘0–9 (0.1.x used ⇧⌘0–9); change them under Global Hotkeys in the menu.
+"
+if [ "$FRESH_INSTALL" = 1 ]; then
+  ACCESS_NOTE="  • To have hotkeys type the code for you, grant Accessibility:
+    System Settings → Privacy & Security → Accessibility.
+"
+elif [ "$REGRANT" = 1 ]; then
+  ACCESS_NOTE="  • To have hotkeys type the code for you, grant Accessibility again:
+    System Settings → Privacy & Security → Accessibility. If GoldenPassport is already listed
+    but typing doesn't work, remove it with \"−\" and pick a hotkey option in the menu again.
+"
+fi
 [ -z "$LEFT_EN" ] || LEFT_NOTE="  • The data folder also keeps $LEFT_EN unencrypted (for rolling
     back), including accounts you delete later in the new version.
 "
@@ -300,11 +337,7 @@ cat <<EOF
 Installed: $OLD_VERSION → $NEW_VERSION
 
 Good to know
-  • Global hotkeys now default to ⌃⌥⌘0–9 (0.1.x used ⇧⌘0–9); change them under Global Hotkeys in the menu.
-  • To have hotkeys type the code for you, grant Accessibility again:
-    System Settings → Privacy & Security → Accessibility. If GoldenPassport is already listed
-    but typing doesn't work, remove it with "−" and pick a hotkey option in the menu again.
-  • To go back to the version you had before: bash "$SCRIPT_DIR/rollback.sh"
+${HOTKEY_NOTE}${ACCESS_NOTE}  • To go back to the version you had before: bash "$SCRIPT_DIR/rollback.sh"
 $KEYCHAIN_NOTE
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   ⚠️  IMPORTANT: the backup holds an unencrypted copy of all your MFA secrets
