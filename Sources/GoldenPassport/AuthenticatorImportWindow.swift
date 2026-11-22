@@ -83,8 +83,12 @@ final class AuthenticatorImportModel: ObservableObject {
         importer.setSelected(selected, for: id)
     }
 
-    func add(payloads: [String]) {
-        report(payloads.map { importer.add(payload: $0) })
+    /// Returns whether any payload was an account (new or already in the preview).
+    @discardableResult
+    func add(payloads: [String]) -> Bool {
+        let results = payloads.map { importer.add(payload: $0) }
+        report(results)
+        return Self.foundAccounts(results)
     }
 
     func chooseImages() {
@@ -104,10 +108,14 @@ final class AuthenticatorImportModel: ObservableObject {
         add(payloads: payloads)
     }
 
-    func addImageData(_ data: Data) {
+    @discardableResult
+    func addImageData(_ data: Data) -> Bool {
         let payloads = QRCodeScanner.payloads(inImageData: data)
-        guard !payloads.isEmpty else { return show(String(localized: "图片里没有找到二维码。"), error: true) }
-        add(payloads: payloads)
+        guard !payloads.isEmpty else {
+            show(String(localized: "图片里没有找到二维码。"), error: true)
+            return false
+        }
+        return add(payloads: payloads)
     }
 
     /// Image files copied in Finder, then an image, then text.
@@ -118,11 +126,12 @@ final class AuthenticatorImportModel: ObservableObject {
            !urls.isEmpty {
             addImages(at: urls)
         } else if let data = pasteboard.data(forType: .png) ?? pasteboard.data(forType: .tiff) {
-            clipboardChangeCount = changeCount
-            addImageData(data)
+            // Only content that held accounts (that is, secrets) is cleared after the import.
+            if addImageData(data) { clipboardChangeCount = changeCount }
         } else if let text = pasteboard.string(forType: .string), !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            clipboardChangeCount = changeCount
-            report(importer.add(text: text))
+            let results = importer.add(text: text)
+            report(results)
+            if Self.foundAccounts(results) { clipboardChangeCount = changeCount }
         } else {
             show(String(localized: "剪贴板里没有图片或链接。"), error: true)
         }
@@ -162,6 +171,15 @@ final class AuthenticatorImportModel: ObservableObject {
         } catch {
             show(error.localizedDescription, error: true)
             return nil
+        }
+    }
+
+    private static func foundAccounts(_ results: [ImportAddResult]) -> Bool {
+        results.contains { result in
+            switch result {
+            case .added, .alreadyRead: return true
+            case .notAnAccount, .invalid: return false
+            }
         }
     }
 
